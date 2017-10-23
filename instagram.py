@@ -26,11 +26,15 @@ class Instagram:
         if len(proof) == 0:
             raise Exception("Failure login in")
 
-    def get_followers(self, username, max=0, action=None):
+    def get_users(self, username, max=0, list="followers", action=None):
         followers = []
+        pos = 1
+        if list != "followers":
+            pos = 2
+
         self.browser.get("https://www.instagram.com/%s" % username)
         links = self.browser.find_elements_by_class_name("_t98z6")
-        links[1].click()
+        links[pos].click()
         sleep(2)
         try:
             overlay = self.browser.find_element_by_class_name("_gs38e")
@@ -40,10 +44,10 @@ class Instagram:
         prev_count = -1
         count = 0
         points = []
-        while(count > prev_count and (max == 0 or count < max)):
+        while (count > prev_count and (max == 0 or count < max)):
             prev_count = count
             self.browser.execute_script('arguments[0].scrollTop = arguments[0].scrollHeight', overlay)
-            sleep(2)
+            sleep(1)
             points = overlay.find_elements_by_tag_name("li")
             count = len(points)
         for point in points:
@@ -61,11 +65,11 @@ class Instagram:
                     if action == "follow" and status == "Follow":
                         print("Following %s" % name)
                         button.click()
-                        sleep(2)
+                        sleep(30)
                     elif action == "unfollow" and status != "Follow":
                         print("Unfollowing %s" % name)
                         button.click()
-                        sleep(2)
+                        sleep(30)
         return followers
 
 
@@ -74,4 +78,4 @@ with open("credentials.json", "r") as f:
 
 insta = Instagram()
 insta.login(credentials["username"], credentials["password"])
-followers = insta.get_followers("lunaelfica", max=50, action="follow")
+followers = insta.get_users("lunaelfica", max=50, action="follow")
