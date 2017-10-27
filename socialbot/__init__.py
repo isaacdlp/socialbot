@@ -7,9 +7,9 @@ from random import randrange
 class SocialBot():
 
     pauses = {
-        "action": 2,
-        "follow": lambda: randrange(30, 90),
-        "unfollow": lambda: randrange(15,45)
+        "action": lambda: randrange(1, 4),
+        "follow": lambda: randrange(30, 91),
+        "unfollow": lambda: randrange(15,46)
     }
 
     times = {}
@@ -39,7 +39,7 @@ class SocialBot():
         secs = 0
         if event in self.times:
             secs = (self.times[event] - datetime.now()).total_seconds()
-            secs += 1
+            #secs += 1
             if secs < 0:
                 secs = 0
         return secs
@@ -101,6 +101,18 @@ class SocialBot():
         return cards
 
 
+class Facebook(SocialBot):
+
+    base_url = "https://facebook.com"
+
+    def login(self, username, password):
+        self._login("%s/login" % self.base_url, username, password,
+                    "form#login_form", "input#email", "input#pass")
+        self.wait_for(lambda: self.browser.find_element_by_css_selector("a._606w"))
+        #html = self.browser.find_element_by_tag_name("html")
+        #self.lang = html.get_attribute("lang")[0:2]
+
+
 class Twitter(SocialBot):
 
     base_url = "https://twitter.com"
@@ -119,8 +131,6 @@ class Twitter(SocialBot):
         self._login("%s/login" % self.base_url, username, password,
                      "form.signin", "input[name='session[username_or_email]']", "input[name='session[password]'")
         self.wait_for(lambda: self.browser.find_element_by_css_selector("a#user-dropdown-toggle"))
-        #html = self.browser.find_element_by_tag_name("html")
-        #self.lang = html.get_attribute("lang")[0:2]
 
     def get_users(self, username, max=0, list="followers", action=None):
         names = []
@@ -134,7 +144,11 @@ class Twitter(SocialBot):
                 if callable(action):
                     action(card)
                 else:
-                    button = card.find_element_by_css_selector(self.buttons[action])
+                    try:
+                        button = card.find_element_by_css_selector(self.buttons[action])
+                    except:
+                        print("No button! Me?")
+                        continue
                     if button.is_displayed():
                         self.wait_until(action)
                         self.browser.execute_script("arguments[0].click();", button)
@@ -186,3 +200,4 @@ class Instagram(SocialBot):
                         self.next_time(action)
                         print("%s %s" % (action, name))
         return names
+
