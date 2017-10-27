@@ -1,24 +1,20 @@
 from selenium import webdriver as web
 from datetime import datetime, timedelta
 from time import sleep
+from random import randrange
 
 
 class SocialBot():
 
     pauses = {
         "action": 2,
-        "follow": 60,
-        "unfollow": 30
+        "follow": lambda: randrange(30, 90),
+        "unfollow": lambda: randrange(15,45)
     }
 
     times = {}
 
-    lang = "en"
-
     actions = {}
-
-    login_url, login_form, login_username, login_password, login_proof, user_url, user_pos, user_lists, user_deck, \
-    user_scroll, user_card = [None] * 11
 
     def __init__(self, driver=None):
         if driver is None:
@@ -67,31 +63,28 @@ class SocialBot():
             raise ("The wait time expired")
         return result
 
-    def login(self, username, password):
-        self.browser.get(self.login_url)
-        form = self.browser.find_element_by_css_selector(self.login_form)
+    def _login(self, url, username, password, css_form, css_username, css_password):
+        self.browser.get(url)
+        form = self.browser.find_element_by_css_selector(css_form)
         self.wait_until("action")
-        input_username = form.find_element_by_css_selector(self.login_username)
+        input_username = form.find_element_by_css_selector(css_username)
         input_username.send_keys(username)
         self.wait_until("action")
-        input_password = form.find_element_by_css_selector(self.login_password)
+        input_password = form.find_element_by_css_selector(css_password)
         input_password.send_keys(password)
         self.wait_until("action")
         form.find_element_by_tag_name("button").click()
-        self.wait_for(lambda: self.browser.find_element_by_css_selector(self.login_proof))
-        html = self.browser.find_element_by_tag_name("html")
-        self.lang = html.get_attribute("lang")[0:2]
 
-    def get_cards(self, username, max=0, list="followers"):
+    def _get_cards(self, url, max, list, css_pos, css_decks, css_deck, css_scroll, css_card):
         cards = []
         pos = None
-        if list in self.user_pos:
-            pos = self.user_pos[list]
-        self.browser.get(self.user_url % username)
+        if list in css_pos:
+            pos = css_pos[list]
+        self.browser.get(url)
         self.wait_until("action")
-        links = self.browser.find_elements_by_css_selector(self.user_lists)
+        links = self.browser.find_elements_by_css_selector(css_decks)
         links[pos].click()
-        deck = self.wait_for(lambda: self.browser.find_element_by_css_selector(self.user_deck), complain=False)
+        deck = self.wait_for(lambda: self.browser.find_element_by_css_selector(css_deck), complain=False)
         if deck is None:
             return cards    # account may be private
         prev_count = -1
@@ -99,9 +92,9 @@ class SocialBot():
         cards = []
         while (count > prev_count and (max == 0 or count < max)):
             prev_count = count
-            self.browser.execute_script(self.user_scroll, deck)
+            self.browser.execute_script(css_scroll, deck)
             self.wait_until("action")
-            cards = deck.find_elements_by_css_selector(self.user_card)
+            cards = deck.find_elements_by_css_selector(css_card)
             count = len(cards)
         if max > 0 and len(cards) > max:
             cards = cards[0:max]
@@ -110,30 +103,30 @@ class SocialBot():
 
 class Twitter(SocialBot):
 
-    login_url = "https://twitter.com/login"
-    login_form = "form.signin"
-    login_username = "input[name='session[username_or_email]']"
-    login_password = "input[name='session[password]'"
-    login_proof = "a#user-dropdown-toggle"
+    base_url = "https://twitter.com"
 
-    user_url = "https://www.twitter.com/%s"
     user_pos = {
         "following": 1,
         "followers": 2
     }
-    user_lists = "a.ProfileNav-stat--link"
-    user_deck = "div.GridTimeline"
-    user_scroll = "window.scrollTo(0, document.body.scrollHeight)"
-    user_card = "div.ProfileCard"
 
     buttons = {
         "follow" : "button.follow-text",
         "unfollow" : "button.following-text"
     }
 
+    def login(self, username, password):
+        self._login("%s/login" % self.base_url, username, password,
+                     "form.signin", "input[name='session[username_or_email]']", "input[name='session[password]'")
+        self.wait_for(lambda: self.browser.find_element_by_css_selector("a#user-dropdown-toggle"))
+        #html = self.browser.find_element_by_tag_name("html")
+        #self.lang = html.get_attribute("lang")[0:2]
+
     def get_users(self, username, max=0, list="followers", action=None):
         names = []
-        cards = self.get_cards(username, max, list)
+        cards = self._get_cards("%s/%s" % (self.base_url, username), max, list,
+                                self.user_pos, "a.ProfileNav-stat--link", "div.GridTimeline",
+                                 "window.scrollTo(0, document.body.scrollHeight)", "div.ProfileCard")
         for card in cards:
             name = card.find_element_by_css_selector("b.u-linkComplex-target").text
             names.append(name)
@@ -152,30 +145,28 @@ class Twitter(SocialBot):
 
 class Instagram(SocialBot):
 
-    login_url = "https://www.instagram.com/accounts/login"
-    login_form = "form._3jvtb"
-    login_username = "input[name='username']"
-    login_password = "input[name='password'"
-    login_proof = "span.coreSpriteSearchIcon"
+    base_url = "https://www.instagram.com"
 
-    user_url = "https://www.instagram.com/%s"
     user_pos = {
         "following": 1,
         "followers": 0
     }
-    user_lists = "a._t98z6"
-    user_deck = "div._gs38e"
-    user_scroll = "arguments[0].scrollTop = arguments[0].scrollHeight"
-    user_card = "li._6e4x5"
 
     buttons = {
         "follow" : "_gexxb",
         "unfollow" : "_t78yp"
     }
 
+    def login(self, username, password):
+        self._login("%s/accounts/login" % self.base_url, username, password,
+                     "form._3jvtb", "input[name='username']", "input[name='password'")
+        self.wait_for(lambda: self.browser.find_element_by_css_selector("span.coreSpriteSearchIcon"))
+
     def get_users(self, username, max=0, list="followers", action=None):
         names = []
-        cards = self.get_cards(username, max, list)
+        cards = self._get_cards("%s/%s" % (self.base_url, username), max, list,
+                                self.user_pos, "a._t98z6", "div._gs38e",
+                                 "arguments[0].scrollTop = arguments[0].scrollHeight", "li._6e4x5")
         for card in cards:
             name = card.find_element_by_css_selector("a._2g7d5").text
             names.append(name)
