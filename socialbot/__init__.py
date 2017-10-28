@@ -132,28 +132,39 @@ class Twitter(SocialBot):
                      "form.signin", "input[name='session[username_or_email]']", "input[name='session[password]'")
         self.wait_for(lambda: self.browser.find_element_by_css_selector("a#user-dropdown-toggle"))
 
-    def get_users(self, username, max=0, list="followers", action=None):
+    def get_users(self, username, max=0, list="followers", action=None, blacklist=None, no_followers=True):
         names = []
-        cards = self._get_cards("%s/%s" % (self.base_url, username), max, list,
-                                self.user_pos, "a.ProfileNav-stat--link", "div.GridTimeline",
-                                 "window.scrollTo(0, document.body.scrollHeight)", "div.ProfileCard")
-        for card in cards:
-            name = card.find_element_by_css_selector("b.u-linkComplex-target").text
-            names.append(name)
-            if action is not None:
-                if callable(action):
-                    action(card)
+        try:
+            cards = self._get_cards("%s/%s" % (self.base_url, username), max, list,
+                                    self.user_pos, "a.ProfileNav-stat--link", "div.GridTimeline",
+                                     "window.scrollTo(0, document.body.scrollHeight)", "div.ProfileCard")
+            for card in cards:
+                name = card.find_element_by_css_selector("b.u-linkComplex-target").text
+                if name in blacklist:
+                    continue
+                if action is not None:
+                    if callable(action):
+                        action(card)
+                    else:
+                        try:
+                            button = card.find_element_by_css_selector(self.buttons[action])
+                        except:
+                            print("No button! Me?")
+                            continue
+                        if button.is_displayed():
+                            if no_followers:
+                                follower = card.find_elements_by_css_selector("span.FollowStatus")
+                                if len(follower) > 0:
+                                    continue
+                            self.wait_until(action)
+                            self.browser.execute_script("arguments[0].click();", button)
+                            self.next_time(action)
+                            names.append(name)
+                            print("%s %s" % (action, name))
                 else:
-                    try:
-                        button = card.find_element_by_css_selector(self.buttons[action])
-                    except:
-                        print("No button! Me?")
-                        continue
-                    if button.is_displayed():
-                        self.wait_until(action)
-                        self.browser.execute_script("arguments[0].click();", button)
-                        self.next_time(action)
-                        print("%s %s" % (action, name))
+                    names.append(name)
+        except Exception as ex:
+            print(ex)
         return names
 
 
@@ -176,28 +187,34 @@ class Instagram(SocialBot):
                      "form._3jvtb", "input[name='username']", "input[name='password'")
         self.wait_for(lambda: self.browser.find_element_by_css_selector("span.coreSpriteSearchIcon"))
 
-    def get_users(self, username, max=0, list="followers", action=None):
+    def get_users(self, username, max=0, list="followers", action=None, blacklist=None):
         names = []
-        cards = self._get_cards("%s/%s" % (self.base_url, username), max, list,
-                                self.user_pos, "a._t98z6", "div._gs38e",
-                                 "arguments[0].scrollTop = arguments[0].scrollHeight", "li._6e4x5")
-        for card in cards:
-            name = card.find_element_by_css_selector("a._2g7d5").text
-            names.append(name)
-            if action is not None:
-                if callable(action):
-                    action(card)
+        try:
+            cards = self._get_cards("%s/%s" % (self.base_url, username), max, list,
+                                    self.user_pos, "a._t98z6", "div._gs38e",
+                                     "arguments[0].scrollTop = arguments[0].scrollHeight", "li._6e4x5")
+            for card in cards:
+                name = card.find_element_by_css_selector("a._2g7d5").text
+                if name in blacklist:
+                    continue
+                if action is not None:
+                    if callable(action):
+                        action(card)
+                    else:
+                        try:
+                            button = card.find_element_by_css_selector("button")
+                        except:
+                            print("No button! Me?")
+                            continue
+                        classes = button.get_attribute("class")
+                        if self.buttons[action] in classes:
+                            self.wait_until(action)
+                            button.click()
+                            self.next_time(action)
+                            names.append(name)
+                            print("%s %s" % (action, name))
                 else:
-                    try:
-                        button = card.find_element_by_css_selector("button")
-                    except:
-                        print("No button! Me?")
-                        continue
-                    classes = button.get_attribute("class")
-                    if self.buttons[action] in classes:
-                        self.wait_until(action)
-                        button.click()
-                        self.next_time(action)
-                        print("%s %s" % (action, name))
+                    names.append(name)
+        except Exception as ex:
+            print(ex)
         return names
-
