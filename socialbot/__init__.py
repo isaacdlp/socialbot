@@ -136,7 +136,7 @@ class Twitter(SocialBot):
         names = []
         try:
             cards = self._get_cards("%s/%s" % (self.base_url, username), max, list,
-                                    self.user_pos, "a.ProfileNav-stat--link", "div.GridTimeline",
+                                    self.user_pos, "a.ProfileNav-stat--link", "div.GridTimeline-items",
                                      "window.scrollTo(0, document.body.scrollHeight)", "div.ProfileCard")
             for card in cards:
                 name = card.find_element_by_css_selector("b.u-linkComplex-target").text

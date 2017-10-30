@@ -1,5 +1,5 @@
 .idea
-credentials*.json
+*credentials*.json
 chromedriver.*
 
 # Byte-compiled / optimized / DLL files
