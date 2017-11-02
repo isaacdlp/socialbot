@@ -20,11 +20,11 @@ try:
     with open("%s-cookies.json" % basename, "r") as f:
         cookies = json.load(f)
 except:
-    print("No cookies found")
+    print("No cookie found")
 
 whitelist = []
 try:
-    with open("%s-%s.json" % (basename, whitelist_name), "w") as f:
+    with open("%s-whitelist.json" % basename, "r") as f:
         whitelist = json.load(f)
 except:
     print("No whitelist found")
@@ -51,18 +51,15 @@ username = credentials["username"]
 
 if cookies is not None:
     bot.set_cookies(cookies)
-    if not bot.logged():
-        cookies = None
-if cookies is None:
+else:
     bot.login(username, credentials["password"])
 
 try:
     if action == "whitelist":
         # Update whitelist
         members = bot.get_list(username, whitelist_name)
-        with open("%s-%s.json" % (basename, whitelist_name), "w") as f:
+        with open("%s-whitelist.json" % basename, "w") as f:
             json.dump(members, f)
-        exit()
 
     elif action == "follow":
         # Follow
@@ -73,7 +70,7 @@ try:
         # Unfollow
         following = bot.get_users("isaacdlp", max=1000, deck="following", action="unfollow", blacklist=whitelist)
         blacklist += following
-        with open("%s-blacklist.json" % basename, "r") as f:
+        with open("%s-blacklist.json" % basename, "w") as f:
             json.dump(blacklist, f)
 except Exception as ex:
     print(ex)
