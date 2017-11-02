@@ -5,7 +5,7 @@ basename = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 bot_type = basename.split("-")[1]
 whitelist_name = "vip"
 
-action = "whitelist"
+action = "follow"
 if len(sys.argv) > 1:
     action = sys.argv[1]
 

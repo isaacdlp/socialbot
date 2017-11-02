@@ -157,14 +157,12 @@ class Twitter(SocialBot):
         return cards
 
     def search_users(self, terms, max=0, action=None, blacklist=[], no_followers=True):
-        q = "%s/search?q=%s&f=users" % (self.base_url, terms)
-        cards = self._get_cards(q, max, "div.GridTimeline-items", "div.js-actionable-user")
+        cards = self._get_cards("%s/search?q=%s&f=users" % (self.base_url, terms), max,
+                                "div.GridTimeline-items", "div.js-actionable-user")
         return self._clean_users(cards, action, blacklist, no_followers)
 
-    # deck options are "tweets", "with_replies" and "media"
-    def get_tweets(self, username, max=0, deck="tweets"):
-        if deck == "tweets":
-            deck = ""
+    # deck options are "" (tweets), "with_replies" and "media"
+    def get_tweets(self, username, max=0, deck=""):
         cards = self._get_cards("%s/%s/%s" % (self.base_url, username, deck), max,
                                 "div.stream-container", "li.js-stream-item")
         return cards
@@ -172,7 +170,7 @@ class Twitter(SocialBot):
     # deck options are "following" and "followers"
     def get_users(self, username, max=0, deck="followers", action=None, blacklist=[], no_followers=True):
         cards = self._get_cards("%s/%s/%s" % (self.base_url, username, deck), max,
-                                "a.ProfileNav-stat--link", "div.GridTimeline-items", "div.js-actionable-user")
+                                "div.GridTimeline-items", "div.js-actionable-user")
         return self._clean_users(cards, action, blacklist, no_followers)
 
     # deck options are "members" and "subscribers"
