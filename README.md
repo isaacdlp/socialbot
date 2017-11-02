@@ -6,6 +6,7 @@ Python bots for social networks
 
 * [Twitter](http://instagram.com)
     * Get followers and followed by a user
+    * Get users by a term search
     * Get list members and subscribers
     * Batch follow and unfollow
 * [Instagram](http://instagram.com)

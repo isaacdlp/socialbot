@@ -54,6 +54,9 @@ if cookies is not None:
 else:
     bot.login(username, credentials["password"])
 
+print(bot.get_tweets("carlosdoblado", max=100, deck="media"))
+exit()
+
 try:
     if action == "whitelist":
         # Update whitelist
@@ -63,12 +66,24 @@ try:
 
     elif action == "follow":
         # Follow
+        num_total = 0
         for target in targets:
-            followers = bot.get_users(target, max=1000, action="follow", blacklist=blacklist)
+            followers = bot.get_users(target, max=100, action="follow", blacklist=blacklist)
+            num = len(followers)
+            print("%i from %s" % (num, target))
+            num_total += num
+        print("%i total" % num_total)
+
+    elif action == "search":
+        # Follow by Search Term
+        term = sys.argv[2]
+        followers = bot.search_users(term, max=1000, action="follow", blacklist=blacklist)
+        print("%i total" % len(followers))
 
     elif action == "unfollow":
         # Unfollow
         following = bot.get_users("isaacdlp", max=1000, deck="following", action="unfollow", blacklist=whitelist)
+        print("%i total" % len(following))
         blacklist += following
         with open("%s-blacklist.json" % basename, "w") as f:
             json.dump(blacklist, f)
@@ -84,3 +99,4 @@ with open("%s-cookies.json" % basename, "w") as f:
 # Quit
 
 bot.quit()
+print("Done")

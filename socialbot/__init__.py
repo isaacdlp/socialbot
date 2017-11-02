@@ -91,12 +91,11 @@ class SocialBot():
         for cookie in cookies:
             self.browser.add_cookie(cookie)
 
-    def _get_cards(self, url, max, deck, css_pos, css_decks, css_deck, css_scroll, css_card):
+    def _get_cards(self, url, max, css_deck, css_card, css_decks=None, pos=0, css_scroll="window.scrollTo(0, document.body.scrollHeight)"):
         cards = []
         self.browser.get(url)
         self.wait_until("action")
-        if deck in css_pos:
-            pos = css_pos[deck]
+        if css_decks is not None:
             links = self.browser.find_elements_by_css_selector(css_decks)
             links[pos].click()
         deck = self.wait_for(lambda: self.browser.find_element_by_css_selector(css_deck), complain=False)
@@ -149,21 +148,40 @@ class Twitter(SocialBot):
     def logged(self):
         return self._logged("a#user-dropdown-toggle")
 
-    # deck options are "members" and "subscribers"
-    def get_list(self, username, listname, max=0, deck="members", action=None, blacklist=[]):
-        cards = self._get_cards("%s/%s/lists/%s/%s" % (self.base_url, username, listname, deck), max, None,
-                                self.user_pos, None, "div.stream-container",
-                               "window.scrollTo(0, document.body.scrollHeight)", "div.js-actionable-user")
-        return self._clean_cards(cards, action, blacklist, False)
+    # deck options are "top" and "tweets" (latest)
+    def search_tweets(self, terms, max=0, deck="top"):
+        q = "%s/search?q=%s" % (self.base_url, terms)
+        if deck != "top":
+            q = "%s&f=%s" % (q, deck)
+        cards = self._get_cards(q, max, "div.stream-container","li.js-stream-item")
+        return cards
+
+    def search_users(self, terms, max=0, action=None, blacklist=[], no_followers=True):
+        q = "%s/search?q=%s&f=users" % (self.base_url, terms)
+        cards = self._get_cards(q, max, "div.GridTimeline-items", "div.js-actionable-user")
+        return self._clean_users(cards, action, blacklist, no_followers)
+
+    # deck options are "tweets", "with_replies" and "media"
+    def get_tweets(self, username, max=0, deck="tweets"):
+        if deck == "tweets":
+            deck = ""
+        cards = self._get_cards("%s/%s/%s" % (self.base_url, username, deck), max,
+                                "div.stream-container", "li.js-stream-item")
+        return cards
 
     # deck options are "following" and "followers"
     def get_users(self, username, max=0, deck="followers", action=None, blacklist=[], no_followers=True):
-        cards = self._get_cards("%s/%s" % (self.base_url, username), max, deck,
-                                self.user_pos, "a.ProfileNav-stat--link", "div.GridTimeline-items",
-                                 "window.scrollTo(0, document.body.scrollHeight)", "div.js-actionable-user")
-        return self._clean_cards(cards, action, blacklist, no_followers)
+        cards = self._get_cards("%s/%s/%s" % (self.base_url, username, deck), max,
+                                "a.ProfileNav-stat--link", "div.GridTimeline-items", "div.js-actionable-user")
+        return self._clean_users(cards, action, blacklist, no_followers)
 
-    def _clean_cards(self, cards, action=None, blacklist=[], no_followers=True):
+    # deck options are "members" and "subscribers"
+    def get_list(self, username, listname, max=0, deck="members", action=None, blacklist=[]):
+        cards = self._get_cards("%s/%s/lists/%s/%s" % (self.base_url, username, listname, deck), max,
+                                "div.stream-container", "div.js-actionable-user")
+        return self._clean_users(cards, action, blacklist, False)
+
+    def _clean_users(self, cards, action=None, blacklist=[], no_followers=True):
         names = []
         try:
             for card in cards:
@@ -221,9 +239,9 @@ class Instagram(SocialBot):
     def get_users(self, username, max=0, deck="followers", action=None, blacklist=[]):
         names = []
         try:
-            cards = self._get_cards("%s/%s" % (self.base_url, username), max, deck,
-                                    self.user_pos, "a._t98z6", "div._gs38e",
-                                     "arguments[0].scrollTop = arguments[0].scrollHeight", "li._6e4x5")
+            cards = self._get_cards("%s/%s" % (self.base_url, username), max,
+                                    "div._gs38e", "li._6e4x5",
+                                    "a._t98z6", self.user_pos[deck], "arguments[0].scrollTop = arguments[0].scrollHeight")
             for card in cards:
                 name = card.find_element_by_css_selector("a._2g7d5").text
                 if name in blacklist:
