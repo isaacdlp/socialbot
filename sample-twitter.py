@@ -54,9 +54,6 @@ if cookies is not None:
 else:
     bot.login(username, credentials["password"])
 
-print(bot.get_tweets("carlosdoblado", max=100, deck="media"))
-exit()
-
 try:
     if action == "whitelist":
         # Update whitelist
