@@ -1,0 +1,126 @@
+[
+  {
+    "value": "GA1.2.1277951566.1509609581",
+    "domain": ".twitter.com",
+    "secure": false,
+    "expiry": 1509695997,
+    "httpOnly": false,
+    "path": "/",
+    "name": "_gid"
+  },
+  {
+    "value": "GA1.2.137202552.1509609581",
+    "domain": ".twitter.com",
+    "secure": false,
+    "expiry": 1572681597,
+    "httpOnly": false,
+    "path": "/",
+    "name": "_ga"
+  },
+  {
+    "domain": "twitter.com",
+    "secure": false,
+    "value": "en",
+    "httpOnly": false,
+    "path": "/",
+    "name": "lang"
+  },
+  {
+    "value": "\"v1_3nftLAiRUCDRuCxELEk3ww==\"",
+    "domain": ".twitter.com",
+    "secure": false,
+    "expiry": 1572681579.329985,
+    "httpOnly": false,
+    "path": "/",
+    "name": "personalization_id"
+  },
+  {
+    "value": "1",
+    "domain": ".twitter.com",
+    "secure": false,
+    "expiry": 1824969595,
+    "httpOnly": false,
+    "path": "/",
+    "name": "dnt"
+  },
+  {
+    "domain": ".twitter.com",
+    "secure": true,
+    "value": "BAh7DCIKZmxhc2hJQzonQWN0aW9uQ29udHJvbGxlcjo6Rmxhc2g6OkZsYXNo%250ASGFzaHsABjoKQHVzZWR7ADoPY3JlYXRlZF9hdGwrCEoivntfAToMY3NyZl9p%250AZCIlZjllMWYxYmQzMzdlN2YyOTM0NmFhYTY5NTcwMjE1M2Q6B2lkIiVmZTVl%250AYWU4NGY4NjQ2MDc2NmNmMzNkMGUwYjYyNjBhYjofbG9naW5fdmVyaWZpY2F0%250AaW9uX3VzZXJfaWRsKwf2Xs7EOiJsb2dpbl92ZXJpZmljYXRpb25fcmVxdWVz%250AdF9pZCIlMnZQd0tGWTBReGl4cUhGVWFvalFaMloxckdWV2ZvOHY6CXVzZXJs%250AKwf2Xs7E--3d573dd46b2b63e6110f1421d5e2672c74d230c6",
+    "httpOnly": true,
+    "path": "/",
+    "name": "_twitter_sess"
+  },
+  {
+    "value": "f92a689800deb3588444b36da7229d7f",
+    "domain": ".twitter.com",
+    "secure": true,
+    "expiry": 1509631179.330944,
+    "httpOnly": false,
+    "path": "/",
+    "name": "ct0"
+  },
+  {
+    "value": "5465c44a07d7f4d14128f0d4f2ec174e8dce7a42",
+    "domain": ".twitter.com",
+    "secure": true,
+    "expiry": 1824969594.826451,
+    "httpOnly": true,
+    "path": "/",
+    "name": "auth_token"
+  },
+  {
+    "value": "\"HBESAAA=\"",
+    "domain": ".twitter.com",
+    "secure": false,
+    "expiry": 1824969594.825961,
+    "httpOnly": false,
+    "path": "/",
+    "name": "ads_prefs"
+  },
+  {
+    "value": "1",
+    "domain": ".twitter.com",
+    "secure": false,
+    "expiry": 1824969594.82622,
+    "httpOnly": false,
+    "path": "/",
+    "name": "remember_checked_on"
+  },
+  {
+    "value": "kQfPiSVaIeWi1boRQrsk6N0OzftAiIMg8TYi8Hi7",
+    "domain": ".twitter.com",
+    "secure": true,
+    "expiry": 1556870394.82608,
+    "httpOnly": true,
+    "path": "/",
+    "name": "kdt"
+  },
+  {
+    "value": "\"u=3301859062\"",
+    "domain": ".twitter.com",
+    "secure": true,
+    "expiry": 1824969594.826336,
+    "httpOnly": false,
+    "path": "/",
+    "name": "twid"
+  },
+  {
+    "value": "v1%3A150960957908122386",
+    "domain": ".twitter.com",
+    "secure": false,
+    "expiry": 1572681579.330546,
+    "httpOnly": false,
+    "path": "/",
+    "name": "guest_id"
+  },
+  {
+    "value": "1",
+    "domain": ".twitter.com",
+    "secure": false,
+    "expiry": 1509609640,
+    "httpOnly": false,
+    "path": "/",
+    "name": "_gat"
+  }
+]

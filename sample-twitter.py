@@ -1,20 +1,42 @@
-import json, os
-from random import shuffle
+import sys, os, json
 import socialbot
 
-basename = os.path.splitext(os.path.basename(__file__))[0]
-bot_type = basename.split("-")[0]
+basename = os.path.splitext(os.path.basename(sys.argv[0]))[0]
+bot_type = basename.split("-")[1]
+whitelist_name = "vip"
+
+action = "whitelist"
+if len(sys.argv) > 1:
+    action = sys.argv[1]
+
+with open("%s-targets.json" % basename, "r") as f:
+    targets = json.load(f)
 
 with open("%s-credentials.json" % basename, "r") as f:
     credentials = json.load(f)
 
-with open("%s-targets" % basename, "r") as f:
-    targets = json.load(f)
+cookies = None
+try:
+    with open("%s-cookies.json" % basename, "r") as f:
+        cookies = json.load(f)
+except:
+    print("No cookies found")
 
-with open("%s-blacklist.json" % basename, "r") as f:
-    blacklist = json.load(f)
+whitelist = []
+try:
+    with open("%s-%s.json" % (basename, whitelist_name), "w") as f:
+        whitelist = json.load(f)
+except:
+    print("No whitelist found")
 
-# Login
+blacklist = []
+try:
+    with open("%s-blacklist.json" % basename, "r") as f:
+        blacklist = json.load(f)
+except:
+    print("No blacklist found")
+
+# Instance bot
 
 if bot_type == "twitter":
     bot = socialbot.Twitter()
@@ -23,23 +45,44 @@ elif bot_type == "instagram":
 else:
     bot = socialbot.Facebook()
 
-bot.login(credentials["username"], credentials["password"])
+# Login or use cookie
 
-# Follow
+username = credentials["username"]
 
-if False:
-    targets = ["carlosdoblado"]
-    while len(targets) > 0:
-        target = targets.pop()
-        followers = bot.get_users(target, max=1000, action="follow")
-        if len(targets) == 0:
-            targets += followers
-            shuffle(targets)
+if cookies is not None:
+    bot.set_cookies(cookies)
+    if not bot.logged():
+        cookies = None
+if cookies is None:
+    bot.login(username, credentials["password"])
 
-# Unfollow
+try:
+    if action == "whitelist":
+        # Update whitelist
+        members = bot.get_list(username, whitelist_name)
+        with open("%s-%s.json" % (basename, whitelist_name), "w") as f:
+            json.dump(members, f)
+        exit()
 
-if False:
-    bot.get_users("isaacdlp", max=1000, action="unfollow")
+    elif action == "follow":
+        # Follow
+        for target in targets:
+            followers = bot.get_users(target, max=1000, action="follow", blacklist=blacklist)
+
+    elif action == "unfollow":
+        # Unfollow
+        following = bot.get_users("isaacdlp", max=1000, deck="following", action="unfollow", blacklist=whitelist)
+        blacklist += following
+        with open("%s-blacklist.json" % basename, "r") as f:
+            json.dump(blacklist, f)
+except Exception as ex:
+    print(ex)
+
+# Save cookie
+
+cookies = bot.browser.get_cookies()
+with open("%s-cookies.json" % basename, "w") as f:
+    json.dump(cookies, f)
 
 # Quit
 

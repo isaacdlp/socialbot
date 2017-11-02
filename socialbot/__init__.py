@@ -6,10 +6,12 @@ from random import randrange
 
 class SocialBot():
 
+    base_url = None
+
     pauses = {
         "action": lambda: randrange(1, 4),
         "follow": lambda: randrange(30, 91),
-        "unfollow": lambda: randrange(15,46)
+        "unfollow": lambda: randrange(10,31)
     }
 
     times = {}
@@ -60,7 +62,7 @@ class SocialBot():
             except:
                 pass
         if complain and result is None:
-            raise ("The wait time expired")
+            raise BaseException("The wait time expired")
         return result
 
     def _login(self, url, username, password, css_form, css_username, css_password):
@@ -75,15 +77,28 @@ class SocialBot():
         self.wait_until("action")
         form.find_element_by_tag_name("button").click()
 
-    def _get_cards(self, url, max, list, css_pos, css_decks, css_deck, css_scroll, css_card):
+    def _logged(self, css_selector):
+        # html = self.browser.find_element_by_tag_name("html")
+        # self.lang = html.get_attribute("lang")[0:2]
+        try:
+           self.wait_for(lambda: self.browser.find_element_by_css_selector(css_selector))
+           return True
+        except:
+            return False
+
+    def set_cookies(self, cookies):
+        self.browser.get(self.base_url)
+        for cookie in cookies:
+            self.browser.add_cookie(cookie)
+
+    def _get_cards(self, url, max, deck, css_pos, css_decks, css_deck, css_scroll, css_card):
         cards = []
-        pos = None
-        if list in css_pos:
-            pos = css_pos[list]
         self.browser.get(url)
         self.wait_until("action")
-        links = self.browser.find_elements_by_css_selector(css_decks)
-        links[pos].click()
+        if deck in css_pos:
+            pos = css_pos[deck]
+            links = self.browser.find_elements_by_css_selector(css_decks)
+            links[pos].click()
         deck = self.wait_for(lambda: self.browser.find_element_by_css_selector(css_deck), complain=False)
         if deck is None:
             return cards    # account may be private
@@ -108,9 +123,9 @@ class Facebook(SocialBot):
     def login(self, username, password):
         self._login("%s/login" % self.base_url, username, password,
                     "form#login_form", "input#email", "input#pass")
-        self.wait_for(lambda: self.browser.find_element_by_css_selector("a._606w"))
-        #html = self.browser.find_element_by_tag_name("html")
-        #self.lang = html.get_attribute("lang")[0:2]
+
+    def logged(self):
+        return self._logged("a._606w")
 
 
 class Twitter(SocialBot):
@@ -130,16 +145,29 @@ class Twitter(SocialBot):
     def login(self, username, password):
         self._login("%s/login" % self.base_url, username, password,
                      "form.signin", "input[name='session[username_or_email]']", "input[name='session[password]'")
-        self.wait_for(lambda: self.browser.find_element_by_css_selector("a#user-dropdown-toggle"))
 
-    def get_users(self, username, max=0, list="followers", action=None, blacklist=None, no_followers=True):
+    def logged(self):
+        return self._logged("a#user-dropdown-toggle")
+
+    # deck options are "members" and "subscribers"
+    def get_list(self, username, listname, max=0, deck="members", action=None, blacklist=[]):
+        cards = self._get_cards("%s/%s/lists/%s/%s" % (self.base_url, username, listname, deck), max, None,
+                                self.user_pos, None, "div.stream-container",
+                               "window.scrollTo(0, document.body.scrollHeight)", "div.js-actionable-user")
+        return self._clean_cards(cards, action, blacklist, False)
+
+    # deck options are "following" and "followers"
+    def get_users(self, username, max=0, deck="followers", action=None, blacklist=[], no_followers=True):
+        cards = self._get_cards("%s/%s" % (self.base_url, username), max, deck,
+                                self.user_pos, "a.ProfileNav-stat--link", "div.GridTimeline-items",
+                                 "window.scrollTo(0, document.body.scrollHeight)", "div.js-actionable-user")
+        return self._clean_cards(cards, action, blacklist, no_followers)
+
+    def _clean_cards(self, cards, action=None, blacklist=[], no_followers=True):
         names = []
         try:
-            cards = self._get_cards("%s/%s" % (self.base_url, username), max, list,
-                                    self.user_pos, "a.ProfileNav-stat--link", "div.GridTimeline-items",
-                                     "window.scrollTo(0, document.body.scrollHeight)", "div.ProfileCard")
             for card in cards:
-                name = card.find_element_by_css_selector("b.u-linkComplex-target").text
+                name = card.get_attribute("data-screen-name")
                 if name in blacklist:
                     continue
                 if action is not None:
@@ -163,8 +191,8 @@ class Twitter(SocialBot):
                             print("%s %s" % (action, name))
                 else:
                     names.append(name)
-        except Exception as ex:
-            print(ex)
+        except:
+            pass
         return names
 
 
@@ -185,12 +213,15 @@ class Instagram(SocialBot):
     def login(self, username, password):
         self._login("%s/accounts/login" % self.base_url, username, password,
                      "form._3jvtb", "input[name='username']", "input[name='password'")
-        self.wait_for(lambda: self.browser.find_element_by_css_selector("span.coreSpriteSearchIcon"))
 
-    def get_users(self, username, max=0, list="followers", action=None, blacklist=None):
+    def logged(self):
+        return self._logged("span.coreSpriteSearchIcon")
+
+    # deck options are "following" and "followers"
+    def get_users(self, username, max=0, deck="followers", action=None, blacklist=[]):
         names = []
         try:
-            cards = self._get_cards("%s/%s" % (self.base_url, username), max, list,
+            cards = self._get_cards("%s/%s" % (self.base_url, username), max, deck,
                                     self.user_pos, "a._t98z6", "div._gs38e",
                                      "arguments[0].scrollTop = arguments[0].scrollHeight", "li._6e4x5")
             for card in cards:

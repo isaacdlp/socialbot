@@ -1,6 +1,7 @@
 .idea
 *credentials*.json
 chromedriver.*
+store/**
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
