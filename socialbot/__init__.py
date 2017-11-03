@@ -1,4 +1,5 @@
 from selenium import webdriver as web
+from selenium.webdriver.chrome.options import Options
 from datetime import datetime, timedelta
 from time import sleep
 from random import randrange
@@ -10,9 +11,10 @@ class SocialBot():
 
     pauses = {
         "action": lambda: randrange(1, 4),
+        "post": lambda: randrange(100, 301),
         "follow": lambda: randrange(30, 91),
         "unfollow": lambda: randrange(10,31)
-    }
+     }
 
     times = {}
 
@@ -20,7 +22,9 @@ class SocialBot():
 
     def __init__(self, driver=None):
         if driver is None:
-            driver = web.Chrome()
+            options = Options()
+            options.add_argument("--disable-notifications")
+            driver = web.Chrome(chrome_options=options)
         self.browser = driver
         self.browser.set_window_size(1000, 1000)
         super().__init__()
@@ -53,17 +57,20 @@ class SocialBot():
         if event == "action":
             self.next_time(event)
 
-    def wait_for(self, function, loops=5, complain=True):
+    def wait_for(self, css_sel, loops=5, complain=True):
         result = None
         for i in range(loops):
             self.wait_until("action")
             try:
-                result = function()
+                result = self.browser.find_element_by_css_selector(css_sel)
             except:
                 pass
         if complain and result is None:
             raise BaseException("The wait time expired")
         return result
+
+    def go_home(self):
+        self.browser.get(self.base_url)
 
     def _login(self, url, username, password, css_form, css_username, css_password):
         self.browser.get(url)
@@ -81,27 +88,24 @@ class SocialBot():
         # html = self.browser.find_element_by_tag_name("html")
         # self.lang = html.get_attribute("lang")[0:2]
         try:
-           self.wait_for(lambda: self.browser.find_element_by_css_selector(css_selector))
+           self.wait_for(css_selector)
            return True
         except:
             return False
 
     def set_cookies(self, cookies, domain=None):
-        self.browser.get(self.base_url)
+        self.go_home()
         for cookie in cookies:
             if domain is None or domain in cookie["domain"]:
                 self.browser.add_cookie(cookie)
+        self.go_home()
 
-    def _get_cards(self, url, max, drop, css_deck, css_card,
-                   css_decks=None, pos=0, css_scroll="window.scrollTo(0, document.body.scrollHeight)"):
+    def _get_cards(self, url, max, offset, css_deck, css_card, css_scroll="window.scrollTo(0, document.body.scrollHeight)"):
         cards = []
-        total = max + drop
-        self.browser.get(url)
-        self.wait_until("action")
-        if css_decks is not None:
-            links = self.browser.find_elements_by_css_selector(css_decks)
-            links[pos].click()
-        deck = self.wait_for(lambda: self.browser.find_element_by_css_selector(css_deck), complain=False)
+        if url is not None:
+            self.browser.get(url)
+        total = max + offset
+        deck = self.wait_for(css_deck, complain=False)
         if deck is None:
             return cards    # account may be private
         prev_count = -1
@@ -113,7 +117,7 @@ class SocialBot():
             self.wait_until("action")
             cards = deck.find_elements_by_css_selector(css_card)
             count = len(cards)
-        cards = cards[drop:-1]
+        cards = cards[offset:-1]
         if max > 0 and len(cards) > max:
             cards = cards[0:max]
         return cards
@@ -130,15 +134,43 @@ class Facebook(SocialBot):
     def logged(self):
         return self._logged("a._606w")
 
+    def get_posts(self, username, max=0, offset=0, action=None):
+        cards = self._get_cards("%s/%s" % (self.base_url, username), max, offset,
+                                "div#recent_capsule_container", "div.userContentWrapper")
+        items = []
+        try:
+            for card in cards:
+                if callable(action):
+                    action(card, items)
+                else:
+                    items.append(card)
+        except:
+            pass
+        return items
+
+    def get_users(self, username, max=0, offset=0, action=None, blacklist=[]):
+        cards = self._get_cards("%s/%s/friends" % (self.base_url, username), max, offset,
+                                "div._3i9", "li._698")
+        items = []
+        try:
+            for card in cards:
+                name = card.find_element_by_css_selector("a._5q6s").get_attribute("href")
+                name = name[25:name.index("?")].lower()
+                if name in blacklist:
+                    continue
+                if action is not None:
+                    if callable(action):
+                        action(card, items)
+                else:
+                    items.append(name)
+        except:
+            pass
+        return items
+
 
 class Twitter(SocialBot):
 
     base_url = "https://twitter.com"
-
-    user_pos = {
-        "following": 1,
-        "followers": 2
-    }
 
     buttons = {
         "follow" : "button.follow-text",
@@ -152,37 +184,50 @@ class Twitter(SocialBot):
     def logged(self):
         return self._logged("a#user-dropdown-toggle")
 
+    def post(self, msg):
+        self.go_home()
+        button = self.wait_for("button#global-new-tweet-button")
+        self.browser.execute_script("arguments[0].click();", button)
+        panel = self.wait_for("div.modal-tweet-form-container")
+        panel.find_element_by_css_selector("div#tweet-box-global").send_keys(msg)
+        self.wait_until("post")
+        button = panel.find_element_by_css_selector("button.js-tweet-btn")
+        self.browser.execute_script("arguments[0].click();", button)
+        self.next_time("post")
+        self.wait_until("action")
+
     # deck options are "top" and "tweets" (latest)
-    def search_posts(self, terms, max=0, drop=0, deck="top", action=None):
+    def search_posts(self, terms, max=0, offset=0, deck="top", action=None):
         q = "%s/search?q=%s" % (self.base_url, terms)
         if deck != "top":
             q = "%s&f=%s" % (q, deck)
-        cards = self._get_cards(q, max, drop, "div.stream-container","li.js-stream-item")
+        cards = self._get_cards(q, max, offset, "div.stream-container", "li.js-stream-item")
         return self._clean_posts(cards, action)
 
-    def search_users(self, terms, max=0, drop=0, action=None, blacklist=[], no_followers=True):
-        cards = self._get_cards("%s/search?q=%s&f=users" % (self.base_url, terms), max, drop,
+    def search_users(self, terms, max=0, offset=0, action=None, blacklist=[], no_followers=True):
+        cards = self._get_cards("%s/search?q=%s&f=users" % (self.base_url, terms), max, offset,
                                 "div.GridTimeline-items", "div.js-actionable-user")
         return self._clean_users(cards, action, blacklist, no_followers)
 
     # deck options are "" (tweets), "with_replies" and "media"
-    def get_posts(self, username, max=0, drop=0, deck="", action=None):
-        cards = self._get_cards("%s/%s/%s" % (self.base_url, username, deck), max, drop,
+    def get_posts(self, username, max=0, offset=0, deck="", action=None):
+        cards = self._get_cards("%s/%s/%s" % (self.base_url, username, deck), max, offset,
                                 "div.stream-container", "div.js-actionable-tweet")
         return self._clean_posts(cards, action)
 
     # deck options are "following" and "followers"
-    def get_users(self, username, max=0, drop=0, deck="followers", action=None, blacklist=[], no_followers=True):
-        cards = self._get_cards("%s/%s/%s" % (self.base_url, username, deck), max, drop,
+    def get_users(self, username, max=0, offset=0, deck="followers", action=None, blacklist=[], no_followers=True):
+        cards = self._get_cards("%s/%s/%s" % (self.base_url, username, deck), max, offset,
                                 "div.GridTimeline-items", "div.js-actionable-user")
         return self._clean_users(cards, action, blacklist, no_followers)
 
     # deck options are "members" and "subscribers"
-    def get_list(self, username, listname, max=0, drop=0, deck="members", action=None, blacklist=[]):
-        cards = self._get_cards("%s/%s/lists/%s/%s" % (self.base_url, username, listname, deck), max, drop,
+    def get_list(self, username, listname, max=0, offset=0, deck="members", action=None, blacklist=[]):
+        cards = self._get_cards("%s/%s/lists/%s/%s" % (self.base_url, username, listname, deck), max, offset,
                                 "div.stream-container", "div.js-actionable-user")
         return self._clean_users(cards, action, blacklist, False)
 
+    # action options "follow" and "unfollow"
     def _clean_users(self, cards, action=None, blacklist=[], no_followers=True):
         items = []
         try:
@@ -244,11 +289,6 @@ class Instagram(SocialBot):
 
     base_url = "https://www.instagram.com"
 
-    user_pos = {
-        "following": 1,
-        "followers": 0
-    }
-
     buttons = {
         "follow" : "_gexxb",
         "unfollow" : "_t78yp"
@@ -261,10 +301,40 @@ class Instagram(SocialBot):
     def logged(self):
         return self._logged("span.coreSpriteSearchIcon")
 
-    def get_posts(self, username, max=0, drop=0, action=None):
+    def search_posts(self, term, max=0, offset=0, action=None):
+        cards = self._get_cards("%s/explore/tags/%s" % (self.base_url, term), max, offset, "div._cmdpi", "div._mck9w")
+        return self._clean_posts(cards, action)
+
+    # max 100 users
+    def search_users(self, term, max=0, offset=0, action=None, blacklist=[]):
+        self.go_home()
+        self.wait_until("action")
+        input = self.browser.find_element_by_css_selector("input._avvq0")
+        input.send_keys(term)
+        cards = self._get_cards(None, max, offset, "div._etpgz", "a._gimca", "arguments[0].scrollTop = arguments[0].scrollHeight")
         items = []
         try:
-            cards = self._get_cards("%s/%s" % (self.base_url, username), max, drop, "div._cmdpi", "div._mck9w")
+            for card in cards:
+                if not "/explore/tags/" in card.get_attribute("href"):
+                    name = card.find_element_by_css_selector("span._sgi9z").text.lower()
+                    if name in blacklist:
+                        continue
+                    if callable(action):
+                        action(card, items)
+                    else:
+                        items.append(name)
+        except:
+            pass
+        return items
+
+    def get_posts(self, username, max=0, offset=0, action=None):
+        cards = self._get_cards("%s/%s" % (self.base_url, username), max, offset, "div._cmdpi", "div._mck9w")
+        return self._clean_posts(cards, action)
+
+    def _clean_posts(self, cards, action):
+        items = []
+        try:
+
             for card in cards:
                 post = {}
                 post["link"] = card.find_element_by_css_selector("a").get_attribute("href")
@@ -279,20 +349,25 @@ class Instagram(SocialBot):
             pass
         return items
 
-    # deck options are "following" and "followers"
-    def get_users(self, username, max=0, drop=0, deck="followers", action=None, blacklist=[]):
+    # deck options are "following" and "followers" | action options "follow" and "unfollow"
+    def get_users(self, username, max=0, offset=0, deck="followers", action=None, blacklist=[]):
+        self.browser.get("%s/%s" % (self.base_url, username))
+        self.wait_until("action")
+        links = self.browser.find_elements_by_css_selector("a._t98z6")
+        pos = 0
+        if deck == "following":
+            pos = 1
+        links[pos].click()
+        cards = self._get_cards(None, max, offset, "div._gs38e", "li._6e4x5", "arguments[0].scrollTop = arguments[0].scrollHeight")
         items = []
         try:
-            cards = self._get_cards("%s/%s" % (self.base_url, username), max, drop,
-                                    "div._gs38e", "li._6e4x5",
-                                    "a._t98z6", self.user_pos[deck], "arguments[0].scrollTop = arguments[0].scrollHeight")
             for card in cards:
                 name = card.find_element_by_css_selector("a._2g7d5").text.lower()
                 if name in blacklist:
                     continue
                 if action is not None:
                     if callable(action):
-                        action(card)
+                        action(card, items)
                     else:
                         try:
                             button = card.find_element_by_css_selector("button")

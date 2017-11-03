@@ -4,7 +4,7 @@ import socialbot
 basename = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 bot_type = basename.split("-")[1]
 
-action = "unfollow"
+action = "friend"
 if len(sys.argv) > 1:
     action = sys.argv[1]
 
@@ -56,6 +56,10 @@ else:
 # Actions
 
 if bot.logged():
+
+    action = None
+    print(bot.get_users("carlos.doblado", 25))
+
     try:
         if action == "follow":
             # Follow

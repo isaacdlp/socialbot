@@ -55,45 +55,46 @@ else:
 
 # Actions
 
-try:
-    if action == "whitelist":
-        # Update whitelist
-        whitelist_name = sys.argv[2]
-        members = bot.get_list(username, whitelist_name)
-        with open("%s-whitelist.json" % basename, "w") as f:
-            json.dump(members, f)
+if bot.logged():
+    try:
+        if action == "whitelist":
+            # Update whitelist
+            whitelist_name = sys.argv[2]
+            members = bot.get_list(username, whitelist_name)
+            with open("%s-whitelist.json" % basename, "w") as f:
+                json.dump(members, f)
 
-    elif action == "follow":
-        # Follow
-        num_total = 0
-        for target in targets:
-            followers = bot.get_users(target, max=100, action="follow", blacklist=blacklist)
-            num = len(followers)
-            print("%i from %s" % (num, target))
-            num_total += num
-        print("%i total" % num_total)
+        elif action == "follow":
+            # Follow
+            num_total = 0
+            for target in targets:
+                followers = bot.get_users(target, max=100, action="follow", blacklist=blacklist)
+                num = len(followers)
+                print("%i from %s" % (num, target))
+                num_total += num
+            print("%i total" % num_total)
 
-    elif action == "posts":
-        # Display posts
-        username = sys.argv[2]
-        posts = bot.get_posts(username, max=1000)
-        print(posts)
+        elif action == "posts":
+            # Display posts
+            username = sys.argv[2]
+            posts = bot.get_posts(username, max=1000)
+            print(posts)
 
-    elif action == "search":
-        # Follow by Search Term
-        term = sys.argv[2]
-        followers = bot.search_users(term, max=1000, action="follow", blacklist=blacklist)
-        print("%i total" % len(followers))
+        elif action == "search":
+            # Follow by Search Term
+            term = sys.argv[2]
+            followers = bot.search_users(term, max=1000, action="follow", blacklist=blacklist)
+            print("%i total" % len(followers))
 
-    elif action == "unfollow":
-        # Unfollow
-        following = bot.get_users(username, max=1000, drop=1000, deck="following", action="unfollow", blacklist=whitelist)
-        print("%i total" % len(following))
-        blacklist += following
-        with open("%s-blacklist.json" % basename, "w") as f:
-            json.dump(blacklist, f)
-except Exception as ex:
-    print(ex)
+        elif action == "unfollow":
+            # Unfollow
+            following = bot.get_users(username, max=1000, offset=1000, deck="following", action="unfollow", blacklist=whitelist)
+            print("%i total" % len(following))
+            blacklist += following
+            with open("%s-blacklist.json" % basename, "w") as f:
+                json.dump(blacklist, f)
+    except Exception as ex:
+        print(ex)
 
 # Save cookie
 
