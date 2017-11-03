@@ -4,7 +4,7 @@ import socialbot
 basename = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 bot_type = basename.split("-")[1]
 
-action = "posts"
+action = "unfollow"
 if len(sys.argv) > 1:
     action = sys.argv[1]
 
@@ -74,7 +74,7 @@ try:
 
     elif action == "unfollow":
         # Unfollow
-        following = bot.get_users("isaacdlp", max=1000, drop=1000, deck="following", action="unfollow", blacklist=whitelist)
+        following = bot.get_users(username, max=1000, drop=1000, deck="following", action="unfollow", blacklist=whitelist)
         print("%i total" % len(following))
         blacklist += following
         with open("%s-blacklist.json" % basename, "w") as f:
@@ -90,5 +90,5 @@ with open("%s-cookies.json" % basename, "w") as f:
 
 # Quit
 
-#bot.quit()
+bot.quit()
 print("Done")

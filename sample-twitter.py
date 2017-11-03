@@ -87,7 +87,7 @@ try:
 
     elif action == "unfollow":
         # Unfollow
-        following = bot.get_users("isaacdlp", max=1000, drop=1000, deck="following", action="unfollow", blacklist=whitelist)
+        following = bot.get_users(username, max=1000, drop=1000, deck="following", action="unfollow", blacklist=whitelist)
         print("%i total" % len(following))
         blacklist += following
         with open("%s-blacklist.json" % basename, "w") as f:
