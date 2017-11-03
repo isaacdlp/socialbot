@@ -91,8 +91,10 @@ class SocialBot():
         for cookie in cookies:
             self.browser.add_cookie(cookie)
 
-    def _get_cards(self, url, max, css_deck, css_card, css_decks=None, pos=0, css_scroll="window.scrollTo(0, document.body.scrollHeight)"):
+    def _get_cards(self, url, max, drop, css_deck, css_card,
+                   css_decks=None, pos=0, css_scroll="window.scrollTo(0, document.body.scrollHeight)"):
         cards = []
+        total = max + drop
         self.browser.get(url)
         self.wait_until("action")
         if css_decks is not None:
@@ -104,12 +106,13 @@ class SocialBot():
         prev_count = -1
         count = 0
         cards = []
-        while (count > prev_count and (max == 0 or count < max)):
+        while (count > prev_count and (max == 0 or count < total)):
             prev_count = count
             self.browser.execute_script(css_scroll, deck)
             self.wait_until("action")
             cards = deck.find_elements_by_css_selector(css_card)
             count = len(cards)
+        cards = cards[drop:-1]
         if max > 0 and len(cards) > max:
             cards = cards[0:max]
         return cards
@@ -149,46 +152,46 @@ class Twitter(SocialBot):
         return self._logged("a#user-dropdown-toggle")
 
     # deck options are "top" and "tweets" (latest)
-    def search_tweets(self, terms, max=0, deck="top"):
+    def search_tweets(self, terms, max=0, drop=0, deck="top", action=None):
         q = "%s/search?q=%s" % (self.base_url, terms)
         if deck != "top":
             q = "%s&f=%s" % (q, deck)
-        cards = self._get_cards(q, max, "div.stream-container","li.js-stream-item")
-        return cards
+        cards = self._get_cards(q, max, drop, "div.stream-container","li.js-stream-item")
+        return self._clean_tweets(cards, action)
 
-    def search_users(self, terms, max=0, action=None, blacklist=[], no_followers=True):
-        cards = self._get_cards("%s/search?q=%s&f=users" % (self.base_url, terms), max,
+    def search_users(self, terms, max=0, drop=0, action=None, blacklist=[], no_followers=True):
+        cards = self._get_cards("%s/search?q=%s&f=users" % (self.base_url, terms), max, drop,
                                 "div.GridTimeline-items", "div.js-actionable-user")
         return self._clean_users(cards, action, blacklist, no_followers)
 
     # deck options are "" (tweets), "with_replies" and "media"
-    def get_tweets(self, username, max=0, deck=""):
-        cards = self._get_cards("%s/%s/%s" % (self.base_url, username, deck), max,
-                                "div.stream-container", "li.js-stream-item")
-        return cards
+    def get_tweets(self, username, max=0, drop=0, deck="", action=None):
+        cards = self._get_cards("%s/%s/%s" % (self.base_url, username, deck), max, drop,
+                                "div.stream-container", "div.js-actionable-tweet")
+        return self._clean_tweets(cards, action)
 
     # deck options are "following" and "followers"
-    def get_users(self, username, max=0, deck="followers", action=None, blacklist=[], no_followers=True):
-        cards = self._get_cards("%s/%s/%s" % (self.base_url, username, deck), max,
+    def get_users(self, username, max=0, drop=0, deck="followers", action=None, blacklist=[], no_followers=True):
+        cards = self._get_cards("%s/%s/%s" % (self.base_url, username, deck), max, drop,
                                 "div.GridTimeline-items", "div.js-actionable-user")
         return self._clean_users(cards, action, blacklist, no_followers)
 
     # deck options are "members" and "subscribers"
-    def get_list(self, username, listname, max=0, deck="members", action=None, blacklist=[]):
-        cards = self._get_cards("%s/%s/lists/%s/%s" % (self.base_url, username, listname, deck), max,
+    def get_list(self, username, listname, max=0, drop=0, deck="members", action=None, blacklist=[]):
+        cards = self._get_cards("%s/%s/lists/%s/%s" % (self.base_url, username, listname, deck), max, drop,
                                 "div.stream-container", "div.js-actionable-user")
         return self._clean_users(cards, action, blacklist, False)
 
     def _clean_users(self, cards, action=None, blacklist=[], no_followers=True):
-        names = []
+        items = []
         try:
             for card in cards:
-                name = card.get_attribute("data-screen-name")
+                name = card.get_attribute("data-screen-name").lower()
                 if name in blacklist:
                     continue
                 if action is not None:
                     if callable(action):
-                        action(card)
+                        action(card, items)
                     else:
                         try:
                             button = card.find_element_by_css_selector(self.buttons[action])
@@ -203,13 +206,38 @@ class Twitter(SocialBot):
                             self.wait_until(action)
                             self.browser.execute_script("arguments[0].click();", button)
                             self.next_time(action)
-                            names.append(name)
+                            items.append(name)
                             print("%s %s" % (action, name))
                 else:
-                    names.append(name)
+                    items.append(name)
         except:
             pass
-        return names
+        return items
+
+    def _clean_tweets(self, cards, action=None):
+        items = []
+        try:
+            for card in cards:
+                tweet = {}
+                tweet["id"] = card.get_attribute("data-tweet-id")
+                tweet["author"] = card.get_attribute("data-screen-name").lower()
+                tweet["retweet"] = card.get_attribute("data-retweet-id")
+                retweeter = card.get_attribute("data-retweeter")
+                if retweeter is not None:
+                    retweeter = retweeter.lower()
+                tweet["retweeter"] = retweeter
+                tweet["msg"] = card.find_element_by_css_selector("p.tweet-text").text
+                tweet["pinned"] = len(card.find_elements_by_css_selector("span.js-pinned-text")) > 0
+                tweet["media"] = len(card.find_elements_by_css_selector("div.js-media-container")) > 0 or \
+                                 len(card.find_elements_by_css_selector("div.AdaptiveMediaOuterContainer")) > 0
+                if action is not None:
+                    if callable(action):
+                        action(tweet, items)
+                else:
+                    items.append(tweet)
+        except:
+            pass
+        return items
 
 
 class Instagram(SocialBot):
@@ -234,10 +262,10 @@ class Instagram(SocialBot):
         return self._logged("span.coreSpriteSearchIcon")
 
     # deck options are "following" and "followers"
-    def get_users(self, username, max=0, deck="followers", action=None, blacklist=[]):
+    def get_users(self, username, max=0, drop=0, deck="followers", action=None, blacklist=[]):
         names = []
         try:
-            cards = self._get_cards("%s/%s" % (self.base_url, username), max,
+            cards = self._get_cards("%s/%s" % (self.base_url, username), max, drop,
                                     "div._gs38e", "li._6e4x5",
                                     "a._t98z6", self.user_pos[deck], "arguments[0].scrollTop = arguments[0].scrollHeight")
             for card in cards:

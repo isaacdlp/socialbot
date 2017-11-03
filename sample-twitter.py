@@ -3,9 +3,8 @@ import socialbot
 
 basename = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 bot_type = basename.split("-")[1]
-whitelist_name = "vip"
 
-action = "follow"
+action = "whitelist"
 if len(sys.argv) > 1:
     action = sys.argv[1]
 
@@ -54,9 +53,16 @@ if cookies is not None:
 else:
     bot.login(username, credentials["password"])
 
+print(bot.get_tweets("carlosdoblado", 5, 2))
+bot.quit()
+exit()
+
+# Actions
+
 try:
     if action == "whitelist":
         # Update whitelist
+        whitelist_name = sys.argv[2]
         members = bot.get_list(username, whitelist_name)
         with open("%s-whitelist.json" % basename, "w") as f:
             json.dump(members, f)
@@ -79,7 +85,7 @@ try:
 
     elif action == "unfollow":
         # Unfollow
-        following = bot.get_users("isaacdlp", max=1000, deck="following", action="unfollow", blacklist=whitelist)
+        following = bot.get_users("isaacdlp", max=1000, drop=1000, deck="following", action="unfollow", blacklist=whitelist)
         print("%i total" % len(following))
         blacklist += following
         with open("%s-blacklist.json" % basename, "w") as f:
