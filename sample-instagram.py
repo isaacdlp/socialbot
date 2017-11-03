@@ -4,7 +4,7 @@ import socialbot
 basename = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 bot_type = basename.split("-")[1]
 
-action = "whitelist"
+action = "posts"
 if len(sys.argv) > 1:
     action = sys.argv[1]
 
@@ -56,14 +56,7 @@ else:
 # Actions
 
 try:
-    if action == "whitelist":
-        # Update whitelist
-        whitelist_name = sys.argv[2]
-        members = bot.get_list(username, whitelist_name)
-        with open("%s-whitelist.json" % basename, "w") as f:
-            json.dump(members, f)
-
-    elif action == "follow":
+    if action == "follow":
         # Follow
         num_total = 0
         for target in targets:
@@ -78,12 +71,6 @@ try:
         username = sys.argv[2]
         posts = bot.get_posts(username, max=1000)
         print(posts)
-
-    elif action == "search":
-        # Follow by Search Term
-        term = sys.argv[2]
-        followers = bot.search_users(term, max=1000, action="follow", blacklist=blacklist)
-        print("%i total" % len(followers))
 
     elif action == "unfollow":
         # Unfollow
@@ -103,5 +90,5 @@ with open("%s-cookies.json" % basename, "w") as f:
 
 # Quit
 
-bot.quit()
+#bot.quit()
 print("Done")

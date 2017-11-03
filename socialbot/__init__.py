@@ -86,10 +86,11 @@ class SocialBot():
         except:
             return False
 
-    def set_cookies(self, cookies):
+    def set_cookies(self, cookies, domain=None):
         self.browser.get(self.base_url)
         for cookie in cookies:
-            self.browser.add_cookie(cookie)
+            if domain is None or domain in cookie["domain"]:
+                self.browser.add_cookie(cookie)
 
     def _get_cards(self, url, max, drop, css_deck, css_card,
                    css_decks=None, pos=0, css_scroll="window.scrollTo(0, document.body.scrollHeight)"):
@@ -152,12 +153,12 @@ class Twitter(SocialBot):
         return self._logged("a#user-dropdown-toggle")
 
     # deck options are "top" and "tweets" (latest)
-    def search_tweets(self, terms, max=0, drop=0, deck="top", action=None):
+    def search_posts(self, terms, max=0, drop=0, deck="top", action=None):
         q = "%s/search?q=%s" % (self.base_url, terms)
         if deck != "top":
             q = "%s&f=%s" % (q, deck)
         cards = self._get_cards(q, max, drop, "div.stream-container","li.js-stream-item")
-        return self._clean_tweets(cards, action)
+        return self._clean_posts(cards, action)
 
     def search_users(self, terms, max=0, drop=0, action=None, blacklist=[], no_followers=True):
         cards = self._get_cards("%s/search?q=%s&f=users" % (self.base_url, terms), max, drop,
@@ -165,10 +166,10 @@ class Twitter(SocialBot):
         return self._clean_users(cards, action, blacklist, no_followers)
 
     # deck options are "" (tweets), "with_replies" and "media"
-    def get_tweets(self, username, max=0, drop=0, deck="", action=None):
+    def get_posts(self, username, max=0, drop=0, deck="", action=None):
         cards = self._get_cards("%s/%s/%s" % (self.base_url, username, deck), max, drop,
                                 "div.stream-container", "div.js-actionable-tweet")
-        return self._clean_tweets(cards, action)
+        return self._clean_posts(cards, action)
 
     # deck options are "following" and "followers"
     def get_users(self, username, max=0, drop=0, deck="followers", action=None, blacklist=[], no_followers=True):
@@ -214,27 +215,26 @@ class Twitter(SocialBot):
             pass
         return items
 
-    def _clean_tweets(self, cards, action=None):
+    def _clean_posts(self, cards, action=None):
         items = []
         try:
             for card in cards:
-                tweet = {}
-                tweet["id"] = card.get_attribute("data-tweet-id")
-                tweet["author"] = card.get_attribute("data-screen-name").lower()
-                tweet["retweet"] = card.get_attribute("data-retweet-id")
+                post = {}
+                post["id"] = card.get_attribute("data-tweet-id")
+                post["author"] = card.get_attribute("data-screen-name").lower()
+                post["retweet"] = card.get_attribute("data-retweet-id")
                 retweeter = card.get_attribute("data-retweeter")
                 if retweeter is not None:
                     retweeter = retweeter.lower()
-                tweet["retweeter"] = retweeter
-                tweet["msg"] = card.find_element_by_css_selector("p.tweet-text").text
-                tweet["pinned"] = len(card.find_elements_by_css_selector("span.js-pinned-text")) > 0
-                tweet["media"] = len(card.find_elements_by_css_selector("div.js-media-container")) > 0 or \
+                post["retweeter"] = retweeter
+                post["msg"] = card.find_element_by_css_selector("p.tweet-text").text
+                post["pinned"] = len(card.find_elements_by_css_selector("span.js-pinned-text")) > 0
+                post["media"] = len(card.find_elements_by_css_selector("div.js-media-container")) > 0 or \
                                  len(card.find_elements_by_css_selector("div.AdaptiveMediaOuterContainer")) > 0
-                if action is not None:
-                    if callable(action):
-                        action(tweet, items)
+                if callable(action):
+                    action(post, items)
                 else:
-                    items.append(tweet)
+                    items.append(post)
         except:
             pass
         return items
@@ -261,15 +261,33 @@ class Instagram(SocialBot):
     def logged(self):
         return self._logged("span.coreSpriteSearchIcon")
 
+    def get_posts(self, username, max=0, drop=0, action=None):
+        items = []
+        try:
+            cards = self._get_cards("%s/%s" % (self.base_url, username), max, drop, "div._cmdpi", "div._mck9w")
+            for card in cards:
+                post = {}
+                post["link"] = card.find_element_by_css_selector("a").get_attribute("href")
+                img = card.find_element_by_css_selector("img")
+                post["msg"] = img.get_attribute("alt")
+                post["img"] = img.get_attribute("src")
+                if callable(action):
+                    action(post, items)
+                else:
+                    items.append(post)
+        except:
+            pass
+        return items
+
     # deck options are "following" and "followers"
     def get_users(self, username, max=0, drop=0, deck="followers", action=None, blacklist=[]):
-        names = []
+        items = []
         try:
             cards = self._get_cards("%s/%s" % (self.base_url, username), max, drop,
                                     "div._gs38e", "li._6e4x5",
                                     "a._t98z6", self.user_pos[deck], "arguments[0].scrollTop = arguments[0].scrollHeight")
             for card in cards:
-                name = card.find_element_by_css_selector("a._2g7d5").text
+                name = card.find_element_by_css_selector("a._2g7d5").text.lower()
                 if name in blacklist:
                     continue
                 if action is not None:
@@ -286,10 +304,10 @@ class Instagram(SocialBot):
                             self.wait_until(action)
                             button.click()
                             self.next_time(action)
-                            names.append(name)
+                            items.append(name)
                             print("%s %s" % (action, name))
                 else:
-                    names.append(name)
-        except Exception as ex:
-            print(ex)
-        return names
+                    items.append(name)
+        except:
+            pass
+        return items
