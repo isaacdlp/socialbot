@@ -24,10 +24,9 @@ class SocialBot():
 
     actions = {}
 
-    def __init__(self, driver=None, log=None):
-        if log is None:
-            log = lg.getLogger("social_bot")
-            log.setLevel(lg.DEBUG)
+    def __init__(self, driver=None, log_name="social_bot"):
+        log = lg.getLogger(log_name)
+        log.setLevel(lg.DEBUG)
         self.log = log
         if driver is None:
             options = Options()

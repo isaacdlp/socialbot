@@ -38,11 +38,11 @@ except:
 # Instance bot
 
 if bot_type == "twitter":
-    bot = socialbot.Twitter()
+    bot = socialbot.Twitter(log_name=basename)
 elif bot_type == "instagram":
-    bot = socialbot.Instagram()
+    bot = socialbot.Instagram(log_name=basename)
 else:
-    bot = socialbot.Facebook()
+    bot = socialbot.Facebook(log_name=basename)
 
 bot.record(True, "%s.log" % basename)
 
