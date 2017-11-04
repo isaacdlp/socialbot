@@ -134,35 +134,52 @@ class Facebook(SocialBot):
     def logged(self):
         return self._logged("a._606w")
 
+    def search_posts(self, terms, max=0, offset=0, action=None):
+        cards = self._get_cards("%s/search/str/%s/stories-keyword/stories-public" % (self.base_url, terms), max, offset,
+                                "div#browse_result_area", "div._401d")
+        return self._clean_posts(cards, "a._3084", "span._5-jo", action)
+
+    def search_users(self, terms, max=0, offset=0, action=None):
+        cards = self._get_cards("%s/search/people/?q=%s" % (self.base_url, terms), max, offset, "div#browse_result_area", "div._3u1")
+        return self._clean_users(cards, action)
+
     def get_posts(self, username, max=0, offset=0, action=None):
         cards = self._get_cards("%s/%s" % (self.base_url, username), max, offset,
                                 "div#recent_capsule_container", "div.userContentWrapper")
-        items = []
-        try:
-            for card in cards:
-                if callable(action):
-                    action(card, items)
-                else:
-                    items.append(card)
-        except:
-            pass
-        return items
+        return self._clean_posts(cards, "span.fwb a", "div.userContent", action)
 
     def get_users(self, username, max=0, offset=0, action=None, blacklist=[]):
         cards = self._get_cards("%s/%s/friends" % (self.base_url, username), max, offset,
                                 "div._3i9", "li._698")
+        return self._clean_users(cards, action, blacklist)
+
+    def _clean_users(self, cards, action=None, blacklist=[]):
         items = []
         try:
             for card in cards:
-                name = card.find_element_by_css_selector("a._5q6s").get_attribute("href")
+                name = card.find_element_by_css_selector("a._ohe").get_attribute("href")
                 name = name[25:name.index("?")].lower()
                 if name in blacklist:
                     continue
-                if action is not None:
-                    if callable(action):
-                        action(card, items)
+                if callable(action):
+                    action(card, items)
                 else:
                     items.append(name)
+        except:
+            pass
+        return items
+
+    def _clean_posts(self, cards, css_link, css_msg, action=None):
+        items = []
+        try:
+            for card in cards:
+                post = {}
+                post["link"] = card.find_element_by_css_selector(css_link).get_attribute("href")
+                post["msg"] = card.find_element_by_css_selector(css_msg).text
+                if callable(action):
+                   action(card, items)
+                else:
+                    items.append(post)
         except:
             pass
         return items
@@ -331,24 +348,6 @@ class Instagram(SocialBot):
         cards = self._get_cards("%s/%s" % (self.base_url, username), max, offset, "div._cmdpi", "div._mck9w")
         return self._clean_posts(cards, action)
 
-    def _clean_posts(self, cards, action):
-        items = []
-        try:
-
-            for card in cards:
-                post = {}
-                post["link"] = card.find_element_by_css_selector("a").get_attribute("href")
-                img = card.find_element_by_css_selector("img")
-                post["msg"] = img.get_attribute("alt")
-                post["img"] = img.get_attribute("src")
-                if callable(action):
-                    action(post, items)
-                else:
-                    items.append(post)
-        except:
-            pass
-        return items
-
     # deck options are "following" and "followers" | action options "follow" and "unfollow"
     def get_users(self, username, max=0, offset=0, deck="followers", action=None, blacklist=[]):
         self.browser.get("%s/%s" % (self.base_url, username))
@@ -383,6 +382,24 @@ class Instagram(SocialBot):
                             print("%s %s" % (action, name))
                 else:
                     items.append(name)
+        except:
+            pass
+        return items
+
+    def _clean_posts(self, cards, action):
+        items = []
+        try:
+
+            for card in cards:
+                post = {}
+                post["link"] = card.find_element_by_css_selector("a").get_attribute("href")
+                img = card.find_element_by_css_selector("img")
+                post["msg"] = img.get_attribute("alt")
+                post["img"] = img.get_attribute("src")
+                if callable(action):
+                    action(post, items)
+                else:
+                    items.append(post)
         except:
             pass
         return items

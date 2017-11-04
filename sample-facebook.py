@@ -56,34 +56,13 @@ else:
 # Actions
 
 if bot.logged():
-
-    action = None
-    print(bot.get_users("carlos.doblado", 25))
-
     try:
-        if action == "follow":
-            # Follow
-            num_total = 0
-            for target in targets:
-                followers = bot.get_users(target, max=100, action="follow", blacklist=blacklist)
-                num = len(followers)
-                print("%i from %s" % (num, target))
-                num_total += num
-            print("%i total" % num_total)
-
-        elif action == "posts":
+        if action == "posts":
             # Display posts
             username = sys.argv[2]
             posts = bot.get_posts(username, max=1000)
             print(posts)
 
-        elif action == "unfollow":
-            # Unfollow
-            following = bot.get_users(username, max=1000, offset=1000, deck="following", action="unfollow", blacklist=whitelist)
-            print("%i total" % len(following))
-            blacklist += following
-            with open("%s-blacklist.json" % basename, "w") as f:
-                json.dump(blacklist, f)
     except Exception as ex:
         print(ex)
 

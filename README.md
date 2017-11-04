@@ -20,5 +20,6 @@ Python bots for social networks
     * Batch follow and unfollow
 * [Facebook](http://instagram.com)
     * Login
+    Get users and posts by a term search
     * Get friends by a user
     * Get posts by a user

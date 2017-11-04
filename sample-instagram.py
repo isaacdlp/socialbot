@@ -73,6 +73,12 @@ if bot.logged():
             posts = bot.get_posts(username, max=1000)
             print(posts)
 
+        elif action == "search":
+            # List by Search Term
+            term = sys.argv[2]
+            followers = bot.search_users(term, max=1000, blacklist=blacklist)
+            print("%i total" % len(followers))
+
         elif action == "unfollow":
             # Unfollow
             following = bot.get_users(username, max=1000, offset=1000, deck="following", action="unfollow", blacklist=whitelist)
