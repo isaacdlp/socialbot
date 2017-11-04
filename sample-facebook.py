@@ -4,7 +4,7 @@ import socialbot
 basename = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 bot_type = basename.split("-")[1]
 
-action = "friend"
+action = "posts"
 if len(sys.argv) > 1:
     action = sys.argv[1]
 
@@ -43,6 +43,8 @@ elif bot_type == "instagram":
     bot = socialbot.Instagram()
 else:
     bot = socialbot.Facebook()
+
+bot.record(True, "%s.log" % basename)
 
 # Login or use cookie
 

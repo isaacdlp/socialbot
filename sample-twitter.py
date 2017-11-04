@@ -53,6 +53,8 @@ if cookies is not None:
 else:
     bot.login(username, credentials["password"])
 
+bot.record(True, "%s.log" % basename)
+
 # Actions
 
 if bot.logged():

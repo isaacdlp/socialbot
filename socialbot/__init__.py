@@ -3,11 +3,15 @@ from selenium.webdriver.chrome.options import Options
 from datetime import datetime, timedelta
 from time import sleep
 from random import randrange
+import logging as lg
 
 
 class SocialBot():
 
     base_url = None
+
+    log = None
+    handler = None
 
     pauses = {
         "action": lambda: randrange(1, 4),
@@ -20,7 +24,11 @@ class SocialBot():
 
     actions = {}
 
-    def __init__(self, driver=None):
+    def __init__(self, driver=None, log=None):
+        if log is None:
+            log = lg.getLogger("social_bot")
+            log.setLevel(lg.DEBUG)
+        self.log = log
         if driver is None:
             options = Options()
             options.add_argument("--disable-notifications")
@@ -28,6 +36,17 @@ class SocialBot():
         self.browser = driver
         self.browser.set_window_size(1000, 1000)
         super().__init__()
+
+    def record(self, on=True, filename="social_bot.log"):
+        if self.handler is None:
+            self.handler = lg.FileHandler(filename)
+            self.handler.setLevel(lg.DEBUG)
+            fmt = lg.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            self.handler.setFormatter(fmt)
+        if on:
+            self.log.addHandler(self.handler)
+        else:
+            self.log.removeHandler(self.handler)
 
     def quit(self):
         self.browser.quit()
@@ -73,6 +92,7 @@ class SocialBot():
         self.browser.get(self.base_url)
 
     def _login(self, url, username, password, css_form, css_username, css_password):
+        self.log.info("logging in as %s in %s" % (username, url))
         self.browser.get(url)
         form = self.browser.find_element_by_css_selector(css_form)
         self.wait_until("action")
@@ -117,6 +137,7 @@ class SocialBot():
             self.wait_until("action")
             cards = deck.find_elements_by_css_selector(css_card)
             count = len(cards)
+            self.log.debug("%s %i cards" % (url, count))
         cards = cards[offset:-1]
         if max > 0 and len(cards) > max:
             cards = cards[0:max]
@@ -165,8 +186,8 @@ class Facebook(SocialBot):
                     action(card, items)
                 else:
                     items.append(name)
-        except:
-            pass
+        except BaseException as ex:
+            self.log.error("%s" % str(ex))
         return items
 
     def _clean_posts(self, cards, css_link, css_msg, action=None):
@@ -180,8 +201,8 @@ class Facebook(SocialBot):
                    action(card, items)
                 else:
                     items.append(post)
-        except:
-            pass
+        except BaseException as ex:
+            self.log.error("%s" % str(ex))
         return items
 
 
@@ -258,8 +279,8 @@ class Twitter(SocialBot):
                     else:
                         try:
                             button = card.find_element_by_css_selector(self.buttons[action])
-                        except:
-                            print("No button! Me?")
+                        except BaseException as ex:
+                            self.log.warning("%s %s" % ("No button! Me?", str(ex)))
                             continue
                         if button.is_displayed():
                             if no_followers:
@@ -270,11 +291,11 @@ class Twitter(SocialBot):
                             self.browser.execute_script("arguments[0].click();", button)
                             self.next_time(action)
                             items.append(name)
-                            print("%s %s" % (action, name))
+                            self.log.info("%s %s" % (action, name))
                 else:
                     items.append(name)
-        except:
-            pass
+        except BaseException as ex:
+            self.log.error("%s" % str(ex))
         return items
 
     def _clean_posts(self, cards, action=None):
@@ -297,8 +318,8 @@ class Twitter(SocialBot):
                     action(post, items)
                 else:
                     items.append(post)
-        except:
-            pass
+        except BaseException as ex:
+            self.log.error("%s" % str(ex))
         return items
 
 
@@ -340,8 +361,8 @@ class Instagram(SocialBot):
                         action(card, items)
                     else:
                         items.append(name)
-        except:
-            pass
+        except BaseException as ex:
+            self.log.error("%s" % str(ex))
         return items
 
     def get_posts(self, username, max=0, offset=0, action=None):
@@ -370,8 +391,8 @@ class Instagram(SocialBot):
                     else:
                         try:
                             button = card.find_element_by_css_selector("button")
-                        except:
-                            print("No button! Me?")
+                        except BaseException as ex:
+                            self.log.warning("%s %s" % ("No button! Me?", str(ex)))
                             continue
                         classes = button.get_attribute("class")
                         if self.buttons[action] in classes:
@@ -379,11 +400,11 @@ class Instagram(SocialBot):
                             button.click()
                             self.next_time(action)
                             items.append(name)
-                            print("%s %s" % (action, name))
+                            self.log.info("%s %s" % (action, name))
                 else:
                     items.append(name)
-        except:
-            pass
+        except BaseException as ex:
+            self.log.error("%s" % str(ex))
         return items
 
     def _clean_posts(self, cards, action):
@@ -400,6 +421,6 @@ class Instagram(SocialBot):
                     action(post, items)
                 else:
                     items.append(post)
-        except:
-            pass
+        except BaseException as ex:
+            self.log.error("%s" % str(ex))
         return items
