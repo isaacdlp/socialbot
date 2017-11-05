@@ -75,14 +75,16 @@ class SocialBot():
         if event == "action":
             self.next_time(event)
 
-    def wait_for(self, css_sel, loops=5, complain=True):
+    def wait_for(self, css_sel, css_base=None, loops=5, complain=True):
+        if css_base is None:
+            css_base = self.browser
         result = None
         for i in range(loops):
-            self.wait_until("action")
             try:
-                result = self.browser.find_element_by_css_selector(css_sel)
+                result = css_base.find_element_by_css_selector(css_sel)
             except:
                 pass
+            self.wait_until("action")
         if complain and result is None:
             raise BaseException("The wait time expired")
         return result
@@ -163,13 +165,13 @@ class Facebook(SocialBot):
         cards = self._get_cards("%s/search/people/?q=%s" % (self.base_url, terms), max, offset, "div#browse_result_area", "div._3u1")
         return self._clean_users(cards, action)
 
-    def get_posts(self, username, max=0, offset=0, action=None):
-        cards = self._get_cards("%s/%s" % (self.base_url, username), max, offset,
+    def get_posts(self, handle, max=0, offset=0, action=None):
+        cards = self._get_cards("%s/%s" % (self.base_url, handle), max, offset,
                                 "div#recent_capsule_container", "div.userContentWrapper")
         return self._clean_posts(cards, "span.fwb a", "div.userContent", action)
 
-    def get_users(self, username, max=0, offset=0, action=None, blacklist=[]):
-        cards = self._get_cards("%s/%s/friends" % (self.base_url, username), max, offset,
+    def get_users(self, handle, max=0, offset=0, action=None, blacklist=[]):
+        cards = self._get_cards("%s/%s/friends" % (self.base_url, handle), max, offset,
                                 "div._3i9", "li._698")
         return self._clean_users(cards, action, blacklist)
 
@@ -247,20 +249,41 @@ class Twitter(SocialBot):
         return self._clean_users(cards, action, blacklist, no_followers)
 
     # deck options are "" (tweets), "with_replies" and "media"
-    def get_posts(self, username, max=0, offset=0, deck="", action=None):
-        cards = self._get_cards("%s/%s/%s" % (self.base_url, username, deck), max, offset,
+    def get_posts(self, handle, max=0, offset=0, deck="", action=None):
+        cards = self._get_cards("%s/%s/%s" % (self.base_url, handle, deck), max, offset,
                                 "div.stream-container", "div.js-actionable-tweet")
         return self._clean_posts(cards, action)
 
     # deck options are "following" and "followers"
-    def get_users(self, username, max=0, offset=0, deck="followers", action=None, blacklist=[], no_followers=True):
-        cards = self._get_cards("%s/%s/%s" % (self.base_url, username, deck), max, offset,
+    def get_users(self, handle, max=0, offset=0, deck="followers", action=None, blacklist=[], no_followers=True):
+        cards = self._get_cards("%s/%s/%s" % (self.base_url, handle, deck), max, offset,
                                 "div.GridTimeline-items", "div.js-actionable-user")
         return self._clean_users(cards, action, blacklist, no_followers)
 
+    def get_user(self, handle, action=None, no_followers=True):
+        self.browser.get("%s/%s" % (self.base_url, handle))
+        card = self.wait_for("div.ProfileHeaderCard")
+        follows_you = len(card.find_elements_by_css_selector("span.FollowStatus")) > 0
+        nav = self.browser.find_element_by_css_selector("div.ProfileNav")
+        if not (no_followers and follows_you):
+            self._user_actions(handle, nav, action)
+        user = {"handle": handle, "follows_you": follows_you, "id": nav.get_attribute("data-user-id")}
+        user["username"] = card.find_element_by_css_selector("a.ProfileHeaderCard-nameLink").text
+        bio = self.wait_for("p.ProfileHeaderCard-bio", card, 1, False)
+        if bio is not None:
+            user["blocked"] = False
+            user["bio"] = bio.text
+            follow = self.wait_for(self.buttons["follow"], nav, 1, False)
+            if follow is not None:
+                user["you_follow"] = not follow.is_displayed()
+        else:
+            user["blocked"] = True
+            self.log.warning("No profile for %s! Blocked?" % handle)
+        return user
+
     # deck options are "members" and "subscribers"
-    def get_list(self, username, listname, max=0, offset=0, deck="members", action=None, blacklist=[]):
-        cards = self._get_cards("%s/%s/lists/%s/%s" % (self.base_url, username, listname, deck), max, offset,
+    def get_list(self, handle, listname, max=0, offset=0, deck="members", action=None, blacklist=[]):
+        cards = self._get_cards("%s/%s/lists/%s/%s" % (self.base_url, handle, listname, deck), max, offset,
                                 "div.stream-container", "div.js-actionable-user")
         return self._clean_users(cards, action, blacklist, False)
 
@@ -272,30 +295,29 @@ class Twitter(SocialBot):
                 name = card.get_attribute("data-screen-name").lower()
                 if name in blacklist:
                     continue
-                if action is not None:
-                    if callable(action):
-                        action(card, items)
-                    else:
-                        try:
-                            button = card.find_element_by_css_selector(self.buttons[action])
-                        except BaseException as ex:
-                            self.log.warning("%s %s" % ("No button! Me?", str(ex)))
-                            continue
-                        if button.is_displayed():
-                            if no_followers:
-                                follower = card.find_elements_by_css_selector("span.FollowStatus")
-                                if len(follower) > 0:
-                                    continue
-                            self.wait_until(action)
-                            self.browser.execute_script("arguments[0].click();", button)
-                            self.next_time(action)
-                            items.append(name)
-                            self.log.info("%s %s" % (action, name))
-                else:
-                    items.append(name)
+                follows_you = len(card.find_elements_by_css_selector("span.FollowStatus")) > 0
+                if not (no_followers and follows_you):
+                    self._user_actions(name, card, action, items)
         except BaseException as ex:
             self.log.error("%s" % str(ex))
         return items
+
+    def _user_actions(self, name, card, action, items=[]):
+        if action is not None:
+            if callable(action):
+                action(card, items)
+            else:
+                button = self.wait_for(self.buttons[action], card, 1, False)
+                if button is None:
+                    self.log.warning("No button for %s! Me?" % name)
+                elif button.is_displayed():
+                    self.wait_until(action)
+                    self.browser.execute_script("arguments[0].click();", button)
+                    self.next_time(action)
+                    items.append(name)
+                    self.log.info("%s %s" % (action, name))
+        else:
+            items.append(name)
 
     def _clean_posts(self, cards, action=None):
         items = []
@@ -364,13 +386,13 @@ class Instagram(SocialBot):
             self.log.error("%s" % str(ex))
         return items
 
-    def get_posts(self, username, max=0, offset=0, action=None):
-        cards = self._get_cards("%s/%s" % (self.base_url, username), max, offset, "div._cmdpi", "div._mck9w")
+    def get_posts(self, handle, max=0, offset=0, action=None):
+        cards = self._get_cards("%s/%s" % (self.base_url, handle), max, offset, "div._cmdpi", "div._mck9w")
         return self._clean_posts(cards, action)
 
     # deck options are "following" and "followers" | action options "follow" and "unfollow"
-    def get_users(self, username, max=0, offset=0, deck="followers", action=None, blacklist=[]):
-        self.browser.get("%s/%s" % (self.base_url, username))
+    def get_users(self, handle, max=0, offset=0, deck="followers", action=None, blacklist=[]):
+        self.browser.get("%s/%s" % (self.base_url, handle))
         self.wait_until("action")
         links = self.browser.find_elements_by_css_selector("a._t98z6")
         pos = 0
@@ -384,27 +406,37 @@ class Instagram(SocialBot):
                 name = card.find_element_by_css_selector("a._2g7d5").text.lower()
                 if name in blacklist:
                     continue
-                if action is not None:
-                    if callable(action):
-                        action(card, items)
-                    else:
-                        try:
-                            button = card.find_element_by_css_selector("button")
-                        except BaseException as ex:
-                            self.log.warning("%s %s" % ("No button! Me?", str(ex)))
-                            continue
-                        classes = button.get_attribute("class")
-                        if self.buttons[action] in classes:
-                            self.wait_until(action)
-                            button.click()
-                            self.next_time(action)
-                            items.append(name)
-                            self.log.info("%s %s" % (action, name))
-                else:
-                    items.append(name)
+                self._user_action(name, card, action, items)
         except BaseException as ex:
             self.log.error("%s" % str(ex))
         return items
+
+    def get_user(self, handle, action=None):
+        self.browser.get("%s/%s" % (self.base_url, handle))
+        card = self.wait_for("header._mainc")
+        self._user_action(handle, card, action)
+        user = {"handle": handle}
+        user["username"] = card.find_element_by_css_selector("h2._kc4z2").text
+        return user
+
+    def _user_action(self, name, card, action, items=[]):
+        if action is not None:
+            if callable(action):
+                action(card, items)
+            else:
+                button = self.wait_for("button", card, 1, False)
+                if button is None:
+                    self.log.warning("No button for %s! Me?" % name)
+                else:
+                    classes = button.get_attribute("class")
+                    if self.buttons[action] in classes:
+                        self.wait_until(action)
+                        button.click()
+                        self.next_time(action)
+                        items.append(name)
+                        self.log.info("%s %s" % (action, name))
+        else:
+            items.append(name)
 
     def _clean_posts(self, cards, action):
         items = []

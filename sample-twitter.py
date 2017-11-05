@@ -81,6 +81,28 @@ if bot.logged():
                 num_total += num
             print("%i total" % num_total)
 
+        elif action == "unfollow":
+            # Unfollow
+            following = bot.get_users(username, max=1000, offset=1000, deck="following", action="unfollow", blacklist=whitelist)
+            print("%i total" % len(following))
+            blacklist += following
+            with open("%s-blacklist.json" % basename, "w") as f:
+                json.dump(list(set(blacklist)), f)
+
+        elif action == "dump":
+            target = sys.argv[2]
+            members = bot.get_users(target)
+            with open("%s-%s" % (bot_type, target), "w") as f:
+                json.dump(members, f)
+
+        elif action == "dump_follow":
+            target = sys.argv[2]
+            with open("%s-%s" % (bot_type, target), "r") as f:
+                dumps = json.load(f)
+            for dump in dumps:
+                if dump not in blacklist:
+                    bot.get_user(dump, action="follow")
+
         elif action == "posts":
             # Display posts
             username = sys.argv[2]
@@ -92,14 +114,6 @@ if bot.logged():
             term = sys.argv[2]
             followers = bot.search_users(term, max=1000, action="follow", blacklist=blacklist)
             print("%i total" % len(followers))
-
-        elif action == "unfollow":
-            # Unfollow
-            following = bot.get_users(username, max=1000, offset=1000, deck="following", action="unfollow", blacklist=whitelist)
-            print("%i total" % len(following))
-            blacklist += following
-            with open("%s-blacklist.json" % basename, "w") as f:
-                json.dump(list(set(blacklist)), f)
     except Exception as ex:
         print(ex)
 
