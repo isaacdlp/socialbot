@@ -1,5 +1,6 @@
 import sys, os, json
 import socialbot
+import logging as lg
 
 basename = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 bot_type = basename.split("-")[1]

@@ -12,13 +12,14 @@ class SocialBot():
 
     log = None
     handler = None
+    formatter = lg.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
     pauses = {
         "action": lambda: randrange(1, 4),
         "post": lambda: randrange(100, 301),
         "follow": lambda: randrange(30, 91),
         "unfollow": lambda: randrange(10,31)
-     }
+    }
 
     times = {}
 
@@ -40,8 +41,7 @@ class SocialBot():
         if self.handler is None:
             self.handler = lg.FileHandler(filename)
             self.handler.setLevel(lg.DEBUG)
-            fmt = lg.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            self.handler.setFormatter(fmt)
+            self.handler.setFormatter(self.formatter)
         if on:
             self.log.addHandler(self.handler)
         else:

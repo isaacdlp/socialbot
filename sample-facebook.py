@@ -1,4 +1,5 @@
 import sys, os, json
+import logging as lg
 import socialbot
 
 basename = os.path.splitext(os.path.basename(sys.argv[0]))[0]
@@ -45,6 +46,10 @@ else:
     bot = socialbot.Facebook(log_name=basename)
 
 bot.record(True, "%s.log" % basename)
+handler = lg.StreamHandler()
+handler.setFormatter(bot.formatter)
+handler.setLevel(lg.DEBUG)
+bot.log.addHandler(handler)
 
 # Login or use cookie
 
