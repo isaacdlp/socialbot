@@ -15,10 +15,10 @@ class SocialBot():
     formatter = lg.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
     pauses = {
-        "action": lambda: randrange(1, 4),
+        "action": lambda: randrange(3, 6),
         "post": lambda: randrange(100, 301),
         "follow": lambda: randrange(30, 91),
-        "unfollow": lambda: randrange(10,31)
+        "unfollow": lambda: randrange(15, 61)
     }
 
     times = {}

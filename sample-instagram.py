@@ -55,6 +55,10 @@ else:
     bot.login(username, credentials["password"])
 
 bot.record(True, "%s.log" % basename)
+handler = lg.StreamHandler()
+handler.setFormatter(bot.formatter)
+handler.setLevel(lg.DEBUG)
+bot.log.addHandler(handler)
 
 # Actions
 
@@ -88,7 +92,7 @@ if bot.logged():
             print("%i total" % len(following))
             blacklist += following
             with open("%s-blacklist.json" % basename, "w") as f:
-                json.dump(blacklist, f)
+                json.dump(list(set(blacklist)), f)
     except Exception as ex:
         print(ex)
 

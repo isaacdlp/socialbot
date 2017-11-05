@@ -99,7 +99,7 @@ if bot.logged():
             print("%i total" % len(following))
             blacklist += following
             with open("%s-blacklist.json" % basename, "w") as f:
-                json.dump(blacklist, f)
+                json.dump(list(set(blacklist)), f)
     except Exception as ex:
         print(ex)
 
