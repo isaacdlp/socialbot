@@ -1,4 +1,5 @@
 import sys, os, json
+from random import shuffle
 import logging as lg
 import socialbot
 
@@ -99,6 +100,7 @@ if bot.logged():
             target = sys.argv[2]
             with open("%s-%s" % (bot_type, target), "r") as f:
                 dumps = json.load(f)
+            shuffle(dumps)
             for dump in dumps:
                 if dump not in blacklist:
                     bot.get_user(dump, action="follow")
