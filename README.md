@@ -2,7 +2,7 @@
 
 Python bots for social networks
 
-## Supported Networks
+## Supported Networks and Features
 
 * [Twitter](http://instagram.com)
     * Login
@@ -14,6 +14,7 @@ Python bots for social networks
     * Get individual user profile
     * Individual follow and unfollow
     * Batch follow and unfollow
+    * Optional fast internal API (JSON)
 * [Instagram](http://instagram.com)
     * Login
     * Get users and posts by a term search
@@ -28,4 +29,4 @@ Python bots for social networks
     * Get friends by a user
     * Get posts by a user
 
-Event logging
+Flexible **event logging**.

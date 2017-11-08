@@ -3,6 +3,8 @@ from selenium.webdriver.chrome.options import Options
 from datetime import datetime, timedelta
 from time import sleep
 from random import randrange
+import requests as req
+from bs4 import BeautifulSoup as bs
 import logging as lg
 
 
@@ -282,8 +284,8 @@ class Twitter(SocialBot):
         return user
 
     # deck options are "members" and "subscribers"
-    def get_list(self, handle, listname, max=0, offset=0, deck="members", action=None, blacklist=[]):
-        cards = self._get_cards("%s/%s/lists/%s/%s" % (self.base_url, handle, listname, deck), max, offset,
+    def get_list(self, handle, list_name, max=0, offset=0, deck="members", action=None, blacklist=[]):
+        cards = self._get_cards("%s/%s/lists/%s/%s" % (self.base_url, handle, list_name, deck), max, offset,
                                 "div.stream-container", "div.js-actionable-user")
         return self._clean_users(cards, action, blacklist, False)
 
@@ -342,6 +344,52 @@ class Twitter(SocialBot):
         except BaseException as ex:
             self.log.error("%s" % str(ex))
         return items
+
+    # deck options are "followers", "following", "likes", "lists"
+    def fast_get(self, handle, position=None, max=0, deck="followers", list_name=None):
+        items = []
+        session = req.Session()
+        session.headers["User-Agent"] = self.browser.execute_script('return navigator.userAgent')
+        for cookie in self.browser.get_cookies():
+            session.cookies.set(cookie["name"], cookie["value"], domain=cookie["domain"], path=cookie["path"])
+        initial_url = "%s/%s/%s" % (self.base_url, handle, deck)
+        stream_url = "%s/users" % initial_url
+        style_data = "div.GridTimeline-items"
+        if deck == "likes" or deck == "lists":
+            if deck == "lists":
+                initial_url = "%s/%s/%s/%s/members" % (self.base_url, handle, deck, list_name)
+            stream_url = "%s/timeline" % initial_url
+            style_data = "div#timeline div.stream-container"
+        res = session.get(initial_url)
+        html = bs(res.content, "html.parser")
+        min_position = int(html.select(style_data)[0]["data-min-position"])
+        init_position = min_position
+        try:
+            count = 0
+            do_end = False
+            cards = None
+            while True:
+                if cards is not None:
+                    self.wait_until("action")
+                    res = session.get("%s?include_available_features=1&include_entities=1&max_position=%i" % (stream_url, min_position))
+                    html = bs(res.json()["items_html"], "html.parser")
+                    min_position = int(res.json()["min_position"])
+                cards = html.select(".js-stream-item")
+                for card in cards:
+                    if deck == "likes":
+                        items.append(card["data-item-id"])
+                    else:
+                        items.append(card.select(".js-actionable-user")[0]["data-screen-name"].lower())
+                    count += 1
+                    if max > 0 and count >= max:
+                        do_end = True
+                        break
+                self.log.debug("Items %i cursor %i for %s %s" % (count, min_position, handle, deck))
+                if do_end or min_position == 0 or (position is not None and min_position <= position):
+                    break
+        except BaseException as ex:
+            self.log.error("%s" % str(ex))
+        return items, init_position
 
 
 class Instagram(SocialBot):
