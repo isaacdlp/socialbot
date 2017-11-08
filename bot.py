@@ -79,19 +79,6 @@ if bot.logged():
             with open("%s-whitelist.json" % basename, "w") as f:
                 json.dump(members, f)
 
-        elif action == "follow":
-            # Follow
-            # python bot.py sample twitter follow
-            with open("%s-targets.json" % basename, "r") as f:
-                targets = json.load(f)
-            num_total = 0
-            for target in targets:
-                followers = bot.get_users(target, max=100, action="follow", blacklist=blacklist)
-                num = len(followers)
-                print("%i from %s" % (num, target))
-                num_total += num
-            print("%i total" % num_total)
-
         elif action == "smart_follow":
             # Smart Follow (note that the param is the alternative max)
             # python bot.py sample twitter smart_follow 300
@@ -120,6 +107,40 @@ if bot.logged():
                 bot.log.warning("ERROR %s" % str(ex))
             with open("%s-smtargets.json" % basename, "w") as f:
                 json.dump(targets, f)
+            print("%i total" % num_total)
+
+        elif action == "smart_unfollow":
+            # Smart Unfollow (note that the param is the max)
+            # python bot.py sample twitter unfollow 300
+            if param is None:
+                param = 0
+            else:
+                param = int(param)
+            dumps = bot.fast_get(username, max=param, deck="following")
+            following = []
+            for dump in reversed(dumps):
+                if dump not in whitelist:
+                    try:
+                        bot.get_user(dump, action="unfollow")
+                        following.append(dump)
+                    except:
+                        bot.log.warning("ERROR with %s" % dump)
+            print("%i total" % len(following))
+            blacklist += following
+            with open("%s-blacklist.json" % basename, "w") as f:
+                json.dump(list(set(blacklist)), f)
+
+        elif action == "follow":
+            # Follow
+            # python bot.py sample twitter follow
+            with open("%s-targets.json" % basename, "r") as f:
+                targets = json.load(f)
+            num_total = 0
+            for target in targets:
+                followers = bot.get_users(target, max=100, action="follow", blacklist=blacklist)
+                num = len(followers)
+                print("%i from %s" % (num, target))
+                num_total += num
             print("%i total" % num_total)
 
         elif action == "unfollow":
