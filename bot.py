@@ -116,7 +116,7 @@ if bot.logged():
                 param = 0
             else:
                 param = int(param)
-            dumps = bot.fast_get(username, max=param, deck="following")
+            dumps, pos = bot.fast_get(username, max=param, deck="following")
             following = []
             for dump in reversed(dumps):
                 if dump not in whitelist:
