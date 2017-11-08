@@ -8,7 +8,8 @@ from random import randrange
 # basename = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 bot_alias = "sample"
 bot_type = "twitter"
-action = "fast_dump"
+action = "smart_unfollow"
+param = None
 
 if len(sys.argv) > 1:
     bot_alias = sys.argv[1]
