@@ -111,18 +111,21 @@ if bot.logged():
             print("%i total" % num_total)
 
         elif action == "smart_unfollow":
-            # Smart Unfollow (note that the param is the max)
-            # python bot.py sample twitter unfollow 300
+            # Smart Unfollow ("total" param will unfollow even if they follow you)
+            # python bot.py sample twitter unfollow 300 total
             if param is None:
                 param = 0
             else:
                 param = int(param)
+            no_followers = True
+            if len(sys.argv) > 4:
+                no_followers = False
             dumps, pos = bot.fast_get(username, max=param, deck="following")
             following = []
             for dump in reversed(dumps):
                 if dump not in whitelist:
                     try:
-                        bot.get_user(dump, action="unfollow", no_followers=False)
+                        bot.get_user(dump, action="unfollow", no_followers=no_followers)
                         following.append(dump)
                     except:
                         bot.log.warning("ERROR with %s" % dump)
