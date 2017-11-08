@@ -121,7 +121,7 @@ if bot.logged():
             for dump in reversed(dumps):
                 if dump not in whitelist:
                     try:
-                        bot.get_user(dump, action="unfollow")
+                        bot.get_user(dump, action="unfollow", no_followers=False)
                         following.append(dump)
                     except:
                         bot.log.warning("ERROR with %s" % dump)
