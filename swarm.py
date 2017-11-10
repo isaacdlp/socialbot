@@ -17,20 +17,15 @@ import logging as lg
 import socialbot
 from random import randrange
 
-
 # basename = os.path.splitext(os.path.basename(sys.argv[0]))[0]
-bot_alias = "sample"
+bot_alias = "pack"
 bot_type = "twitter"
-action = "smart_unfollow"
+action = "tweet"
 param = None
 
 if len(sys.argv) > 1:
     bot_alias = sys.argv[1]
     bot_type = sys.argv[2]
-    if len(sys.argv) > 3:
-        action = sys.argv[3]
-        if len(sys.argv) > 4:
-            param = sys.argv[4]
 
 basename = "%s-%s" % (bot_alias, bot_type)
 
@@ -44,13 +39,6 @@ try:
 except:
     print("No cookie found")
 
-whitelist = []
-try:
-    with open("%s-whitelist.json" % basename, "r") as f:
-        whitelist = json.load(f)
-except:
-    print("No whitelist found")
-
 blacklist = []
 try:
     with open("%s-blacklist.json" % basename, "r") as f:
@@ -60,27 +48,54 @@ except:
 
 # Instance bot
 
-if bot_type == "twitter":
-    bot = socialbot.Twitter(log_name=basename)
-elif bot_type == "instagram":
-    bot = socialbot.Instagram(log_name=basename)
-else:
-    bot = socialbot.Facebook(log_name=basename)
+print("%i bot credentials" % len(credentials))
 
-# Login or use cookie
+jar = dict()
 
-username = credentials["username"]
+for num, credential in enumerate(credentials):
+    username = credential["username"]
+    try:
+        logname = "%s-%s" % (basename, username)
 
-if cookies is not None:
-    bot.set_cookies(cookies, bot_type)
-else:
-    bot.login(username, credentials["password"])
+        if bot_type == "twitter":
+            bot = socialbot.Twitter(log_name=logname)
+        elif bot_type == "instagram":
+            bot = socialbot.Instagram(log_name=logname)
+        else:
+            bot = socialbot.Facebook(log_name=logname)
 
-bot.record(True, "%s.log" % basename)
-handler = lg.StreamHandler()
-handler.setFormatter(bot.formatter)
-handler.setLevel(lg.DEBUG)
-bot.log.addHandler(handler)
+        # Login or use cookie
+
+        if cookies is not None:
+            bot.set_cookies(cookies, bot_type)
+        else:
+            bot.login(username, credential["password"])
+
+        handler = lg.StreamHandler()
+        handler.setFormatter(bot.formatter)
+        handler.setLevel(lg.DEBUG)
+        bot.log.addHandler(handler)
+
+        print("%i %s %s %s" %(num, username, credential["phone"], credential["password"]))
+
+        needs_phone = bot.wait_for("input#challenge_response", complain=False)
+        if needs_phone is not None:
+            needs_phone.send_keys(credential["phone"])
+            button = bot.wait_for("input#email_challenge_submit", complain=False)
+            button.submit()
+
+        if bot.logged():
+            jar[username] = bot.browser.get_cookies()
+        else:
+            print("Problem with %s" % username)
+    except:
+        print("Failure with %s" % username)
+
+
+with open("%s-cookies.json" % basename, "w") as f:
+    json.dump(cookies, f)
+
+exit()
 
 # Actions
 
