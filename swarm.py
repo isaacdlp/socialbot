@@ -57,7 +57,7 @@ for num, credential in enumerate(credentials):
     try:
         logname = "%s-%s" % (basename, username)
 
-        if username in cookies: #or credential["status"] != "ok":
+        if username in cookies or credential["status"] == "off":
             continue
 
         if bot_type == "twitter":
@@ -89,16 +89,16 @@ for num, credential in enumerate(credentials):
 
         if bot.logged():
             cookies[username] = bot.browser.get_cookies()
-            credential["status"] = True
+            credential["status"] = "on"
             count += 1
             if count > 9:
                 break
         else:
             print("Problem with %s" % username)
-            credential["status"] = False
+            credential["status"] = "off"
     except:
         print("Failure with %s" % username)
-        credential["status"] = False
+        credential["status"] = "off"
 
 
 with open("%s-cookies.json" % basename, "w") as f:

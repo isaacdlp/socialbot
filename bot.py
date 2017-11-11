@@ -89,9 +89,9 @@ if bot.logged():
         if action == "smart_whitelist":
             # Smart Update whitelist
             # python bot.py sample twitter whitelist vip
-            members, pos = bot.fast_get(username, deck="list", list_name=param)
+            members, pos = bot.fast_get(username, deck="lists", list_name=param)
             with open("%s-whitelist.json" % basename, "w") as f:
-                json.dump(members, f)
+                json.dump(members, f, indent=2)
 
         elif action == "smart_follow":
             # Smart Follow (note that the param is the alternative max)
@@ -120,7 +120,7 @@ if bot.logged():
             except BaseException as ex:
                 bot.log.warning("ERROR %s" % str(ex))
             with open("%s-smtargets.json" % basename, "w") as f:
-                json.dump(targets, f)
+                json.dump(targets, f, indent=2)
             print("%i total" % num_total)
 
         elif action == "smart_unfollow":
@@ -154,7 +154,7 @@ if bot.logged():
             # python bot.py sample twitter whitelist vip
             members = bot.get_list(username, param)
             with open("%s-whitelist.json" % basename, "w") as f:
-                json.dump(members, f)
+                json.dump(members, f, indent=2)
 
         elif action == "follow":
             # Follow
@@ -242,7 +242,7 @@ if bot.logged():
 
 cookies = bot.browser.get_cookies()
 with open("%s-cookies.json" % basename, "w") as f:
-    json.dump(cookies, f)
+    json.dump(cookies, f, indent=2)
 
 # Quit
 
