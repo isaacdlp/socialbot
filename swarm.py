@@ -50,12 +50,15 @@ except:
 
 print("%i bot credentials" % len(credentials))
 
-jar = dict()
+count = 0
 
 for num, credential in enumerate(credentials):
     username = credential["username"]
     try:
         logname = "%s-%s" % (basename, username)
+
+        if username in cookies: #or credential["status"] != "ok":
+            continue
 
         if bot_type == "twitter":
             bot = socialbot.Twitter(log_name=logname)
@@ -66,10 +69,10 @@ for num, credential in enumerate(credentials):
 
         # Login or use cookie
 
-        if cookies is not None:
-            bot.set_cookies(cookies, bot_type)
-        else:
-            bot.login(username, credential["password"])
+
+            # bot.set_cookies(cookies, bot_type)
+        #else:
+        bot.login(username, credential["password"])
 
         handler = lg.StreamHandler()
         handler.setFormatter(bot.formatter)
@@ -85,15 +88,26 @@ for num, credential in enumerate(credentials):
             button.submit()
 
         if bot.logged():
-            jar[username] = bot.browser.get_cookies()
+            cookies[username] = bot.browser.get_cookies()
+            credential["status"] = True
+            count += 1
+            if count > 9:
+                break
         else:
             print("Problem with %s" % username)
+            credential["status"] = False
     except:
         print("Failure with %s" % username)
+        credential["status"] = False
 
 
 with open("%s-cookies.json" % basename, "w") as f:
-    json.dump(cookies, f)
+    json.dump(cookies, f, indent=2)
+
+
+with open("pack-twitter-credentials.json", "w") as f:
+    json.dump(credentials, f, indent=2)
+
 
 exit()
 

@@ -86,10 +86,10 @@ bot.log.addHandler(handler)
 
 if bot.logged():
     try:
-        if action == "whitelist":
-            # Update whitelist
+        if action == "smart_whitelist":
+            # Smart Update whitelist
             # python bot.py sample twitter whitelist vip
-            members = bot.get_list(username, param)
+            members, pos = bot.fast_get(username, deck="list", list_name=param)
             with open("%s-whitelist.json" % basename, "w") as f:
                 json.dump(members, f)
 
@@ -148,6 +148,13 @@ if bot.logged():
             blacklist += following
             with open("%s-blacklist.json" % basename, "w") as f:
                 json.dump(list(set(blacklist)), f)
+
+        if action == "whitelist":
+            # Update whitelist
+            # python bot.py sample twitter whitelist vip
+            members = bot.get_list(username, param)
+            with open("%s-whitelist.json" % basename, "w") as f:
+                json.dump(members, f)
 
         elif action == "follow":
             # Follow
