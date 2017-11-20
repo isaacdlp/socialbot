@@ -11,262 +11,177 @@
 # THE SOFTWARE.
 
 
-import sys, os, json
-from random import shuffle
-import logging as lg
+import sys, json, glob
+from random import shuffle, choice
 import socialbot
-from random import randrange
+from time import sleep
 
-# basename = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 bot_alias = "pack"
 bot_type = "twitter"
-action = "tweet"
+action = "post"
 param = None
 
 if len(sys.argv) > 1:
     bot_alias = sys.argv[1]
-    bot_type = sys.argv[2]
+    if len(sys.argv) > 2:
+       bot_type = sys.argv[2]
+       if len(sys.argv) > 3:
+           action = sys.argv[3]
+           if len(sys.argv) > 4:
+               param = sys.argv[4]
 
 basename = "%s-%s" % (bot_alias, bot_type)
 
-with open("%s-credentials.json" % basename, "r") as f:
-    credentials = json.load(f)
+# Gather credentials
 
-cookies = None
-try:
-    with open("%s-cookies.json" % basename, "r") as f:
-        cookies = json.load(f)
-except:
-    print("No cookie found")
+siblings = glob.glob("%s-bots/*-bot.json" % basename)
+shuffle(siblings)
 
-blacklist = []
-try:
-    with open("%s-blacklist.json" % basename, "r") as f:
-        blacklist = json.load(f)
-except:
-    print("No blacklist found")
+if action == "fix":
 
-# Instance bot
+    # Fix broken bots action
 
-print("%i bot credentials" % len(credentials))
+    for num, sibling in enumerate(siblings):
 
-count = 0
+        with open(sibling, "r") as f:
+            credentials = json.load(f)
 
-for num, credential in enumerate(credentials):
-    username = credential["username"]
-    try:
-        logname = "%s-%s" % (basename, username)
+        if credentials["status"] != "on":
+            bot = socialbot.Twitter(log_name=basename)
+            bot.pauses["action"] = lambda: 1
+            bot.username = credentials["username"]
 
-        if username in cookies or credential["status"] == "off":
-            continue
-
-        if bot_type == "twitter":
-            bot = socialbot.Twitter(log_name=logname)
-        elif bot_type == "instagram":
-            bot = socialbot.Instagram(log_name=logname)
-        else:
-            bot = socialbot.Facebook(log_name=logname)
-
-        # Login or use cookie
-
-
-            # bot.set_cookies(cookies, bot_type)
-        #else:
-        bot.login(username, credential["password"])
-
-        handler = lg.StreamHandler()
-        handler.setFormatter(bot.formatter)
-        handler.setLevel(lg.DEBUG)
-        bot.log.addHandler(handler)
-
-        print("%i %s %s %s" %(num, username, credential["phone"], credential["password"]))
-
-        needs_phone = bot.wait_for("input#challenge_response", complain=False)
-        if needs_phone is not None:
-            needs_phone.send_keys(credential["phone"])
-            button = bot.wait_for("input#email_challenge_submit", complain=False)
-            button.submit()
-
-        if bot.logged():
-            cookies[username] = bot.browser.get_cookies()
-            credential["status"] = "on"
-            count += 1
-            if count > 9:
-                break
-        else:
-            print("Problem with %s" % username)
-            credential["status"] = "off"
-    except:
-        print("Failure with %s" % username)
-        credential["status"] = "off"
-
-
-with open("%s-cookies.json" % basename, "w") as f:
-    json.dump(cookies, f, indent=2)
-
-
-with open("pack-twitter-credentials.json", "w") as f:
-    json.dump(credentials, f, indent=2)
-
-
-exit()
-
-# Actions
-
-if bot.logged():
-    try:
-        if action == "whitelist":
-            # Update whitelist
-            # python bot.py sample twitter whitelist vip
-            members = bot.get_list(username, param)
-            with open("%s-whitelist.json" % basename, "w") as f:
-                json.dump(members, f)
-
-        elif action == "smart_follow":
-            # Smart Follow (note that the param is the alternative max)
-            # python bot.py sample twitter smart_follow 300
-            if param is None:
-                param = 0
-            else:
-                param = int(param)
-            with open("%s-smtargets.json" % basename, "r") as f:
-                targets = json.load(f)
-            num_total = 0
             try:
-                for target in targets:
-                    num = 0
-                    dumps, pos = bot.fast_get(target["@handle"], target["@pos"], param)
-                    target["@pos"] = pos
-                    shuffle(dumps)
-                    for dump in dumps:
-                        if dump not in blacklist:
-                            try:
-                                bot.get_user(dump, action="follow")
-                                num += 1
-                            except:
-                                bot.log.warning("ERROR with %s" % dump)
-                    num_total += num
-            except BaseException as ex:
-                bot.log.warning("ERROR %s" % str(ex))
-            with open("%s-smtargets.json" % basename, "w") as f:
-                json.dump(targets, f)
-            print("%i total" % num_total)
+                bot.login(bot.username, credentials["password"])
 
-        elif action == "smart_unfollow":
-            # Smart Unfollow ("total" param will unfollow even if they follow you)
-            # python bot.py sample twitter unfollow 300 total
-            if param is None:
-                param = 0
-            else:
-                param = int(param)
-            no_followers = True
-            if len(sys.argv) > 4:
-                no_followers = False
-            dumps, pos = bot.fast_get(username, deck="following")
-            following = []
-            for dump in reversed(dumps):
-                if dump not in whitelist:
-                    try:
-                        bot.get_user(dump, action="unfollow", no_followers=no_followers)
-                        following.append(dump)
-                        if param > 0 and len(following) >= param:
-                            break
-                    except:
-                        bot.log.warning("ERROR with %s" % dump)
-            print("%i total" % len(following))
-            blacklist += following
-            with open("%s-blacklist.json" % basename, "w") as f:
-                json.dump(list(set(blacklist)), f)
+                print("%i %s %s %s" % (num, bot.username, credentials["phone"], credentials["password"]))
 
-        elif action == "follow":
-            # Follow
-            # python bot.py sample twitter follow
-            with open("%s-targets.json" % basename, "r") as f:
+                needs_phone = bot.wait_for("input#challenge_response", complain=False)
+                if needs_phone is not None:
+                    needs_phone.send_keys(credentials["phone"])
+                    button = bot.wait_for("input#email_challenge_submit", complain=False)
+                    button.submit()
+
+                if bot.logged():
+                    jar = bot.browser.get_cookies()
+                    credentials["status"] = "on"
+                    with open("%s-bots/%s-bot.json" % (basename, bot.username), "w") as f:
+                        json.dump(credentials, f, indent=4)
+                    with open("%s-bots/%s-cookie.json" % (basename, bot.username), "w") as f:
+                        jar = bot.browser.get_cookies()
+                        json.dump(jar, f, indent=4)
+                    bot.quit()
+                else:
+                    print("Problem with %s" % bot.username)
+            except:
+                print("Failure with %s" % bot.username)
+
+else:
+
+    pack_size = 2
+    if param is not None:
+        pack_size = int(param)
+    bots = []
+
+    blacklist = []
+    try:
+        with open("%s-blacklist.json" % basename, "r") as f:
+            blacklist = json.load(f)
+    except:
+        print("No blacklist found")
+
+    for sibling in siblings:
+
+        with open(sibling, "r") as f:
+            credentials = json.load(f)
+
+        if credentials["status"] == "on":
+            bot = socialbot.Twitter(log_name=basename)
+            bot.pauses["action"] = lambda: 1
+            bot.username = credentials["username"]
+            cookies = None
+            try:
+                with open("%s-bots/%s-cookie.json" % (basename, bot.username), "r") as f:
+                    cookies = json.load(f)
+            except:
+                pass
+            try:
+                if cookies is None:
+                    bot.login(bot.username, credentials["password"])
+                else:
+                    bot.set_cookies(cookies, bot_type)
+                if bot.logged():
+                    print("Adding %s to the pack" % bot.username)
+                    bot.status = "on"
+                    bots.append(bot)
+                    if len(bots) >= pack_size:
+                        break
+            except Exception as ex:
+                print("Issue %s with %s !" % (ex, bot.username))
+                credentials["status"] = "off"
+                with open("%s-bots/%s-bot.json" % (basename, bot.username), "w") as f:
+                    json.dump(credentials, f, indent=4)
+                bot.quit()
+
+    try:
+
+        if action == "post":
+
+        # Post messages to targets action
+
+            with open("%s-msgs.json" % (basename), "r") as f:
+                msgs = json.load(f)
+
+            with open("%s-targets.json" % (basename), "r") as f:
                 targets = json.load(f)
-            num_total = 0
-            for target in targets:
-                followers = bot.get_users(target, max=100, action="follow", blacklist=blacklist)
-                num = len(followers)
-                print("%i from %s" % (num, target))
-                num_total += num
-            print("%i total" % num_total)
+            target_iter = iter(targets["@deck"])
 
-        elif action == "unfollow":
-            # Unfollow (note that the param is the offset)
-            # python bot.py sample twitter unfollow 300
-            if param is None:
-                param = 0
-            else:
-                param = int(param)
-            following = bot.get_users(username, max=1000, offset=param, deck="following", action="unfollow", blacklist=whitelist)
-            print("%i total" % len(following))
-            blacklist += following
-            with open("%s-blacklist.json" % basename, "w") as f:
-                json.dump(list(set(blacklist)), f)
-
-        elif action == "dump":
-            # Dump a Deck
-            # python bot.py sample twitter dump carlosdoblado
-            members = bot.get_users(param)
-            with open("%s-%s.json" % (bot_type, param), "w") as f:
-                json.dump(members, f)
-
-        elif action == "smart_dump":
-            # Fast Dump a Deck (using HTTP API)
-            # python bot.py sample twitter smart_dump carlosdoblado
-            bot.pauses["action"] = lambda: randrange(1, 3)
-            prev_pos = None
-            prev_deck = []
-            if os.path.isfile("%s-%s.json" % (bot_type, param)):
-                with open("%s-%s.json" % (bot_type, param), "r") as f:
-                    obj = json.load(f)
-                    if "@pos" in obj:
-                        prev_post = obj["@pos"]
-                    if "@deck" in obj:
-                        prev_deck = obj["@deck"]
-            deck, pos = bot.fast_get(param, prev_pos)
-            with open("%s-%s.json" % (bot_type, param), "w") as f:
-                json.dump({
-                    "@pos": pos,
-                    "@deck": list(set(prev_deck + deck))
-                }, f)
-
-        elif action == "dump_follow":
-            # Follow from a dumped (normal or smart) Deck
-            # python bot.py sample twitter dump_follow carlosdoblado
-            with open("%s-%s.json" % (bot_type, param), "r") as f:
-                dumps = json.load(f)
-                if "@deck" in dumps:
-                    dumps = dumps["@deck"]
-            shuffle(dumps)
-            for dump in dumps:
-                if dump not in blacklist:
+            while(True):
+                num = 0
+                active = False
+                for bot in bots:
                     try:
-                        bot.get_user(dump, action="follow")
-                    except:
-                        bot.log.warning("ERROR with %s" % dump)
+                        if bot.status == "on":
+                            if bot.ready_to("post"):
+                                try:
+                                    target = None
+                                    while target is None or target in blacklist:
+                                        target = next(target_iter, False)
+                                    msg = choice(msgs)
+                                    msg = msg.replace("[handle]", "@%s" % target)
+                                    bot.post(msg)
+                                    print("%s posted '%s'" % (bot.username, msg))
+                                    blacklist.append(target)
+                                    num += 1
+                                except StopIteration as ex:
+                                    break
+                            active = True
+                    except Exception as ex:
+                        bot.status = "off"
+                        print("Failure %s with %s !" % (ex, bot.username))
+                if not active:
+                    print("No more bots working. Exiting.")
+                    break
+                if num < 1:
+                    print("Too fast. Waiting.")
+                    sleep(10)
 
-        elif action == "posts":
-            # Display posts by Search Term
-            # python bot.py sample twitter posts finanzas
-            posts = bot.get_posts(param, max=1000)
-            print(posts)
+    finally:
+        with open("%s-blacklist.json" % basename, "w") as f:
+            json.dump(list(set(blacklist)), f)
+        for bot in bots:
+            try:
+                if bot.status == "off":
+                    with open("%s-bots/%s-bot.json" % (basename, bot.username), "r") as f:
+                        credentials = json.load(f)
+                    credentials["status"] = "off"
+                    with open("%s-bots/%s-bot.json" % (basename, bot.username), "w") as f:
+                        json.dump(credentials, f, indent=4)
+                with open("%s-bots/%s-cookie.json" % (basename, bot.username), "w") as f:
+                    jar = bot.browser.get_cookies()
+                    json.dump(jar, f, indent=4)
+                bot.quit()
+            except Exception as ex:
+                print(str(ex))
 
-        elif action == "users":
-            # Display users by Search Term
-            # python bot.py sample twitter users finanzas
-            followers = bot.search_users(param, max=1000, blacklist=blacklist)
-            print("%i total" % len(followers))
-    except Exception as ex:
-        print(ex)
-
-# Save cookie
-
-cookies = bot.browser.get_cookies()
-with open("%s-cookies.json" % basename, "w") as f:
-    json.dump(cookies, f)
-
-# Quit
-
-bot.quit()
 print("Done")

@@ -88,7 +88,7 @@ if bot.logged():
     try:
         if action == "smart_whitelist":
             # Smart Update whitelist
-            # python bot.py sample twitter whitelist vip
+            # python bot.py sample twitter smart_whitelist vip
             members, pos = bot.fast_get(username, deck="lists", list_name=param)
             with open("%s-whitelist.json" % basename, "w") as f:
                 json.dump(members, f, indent=2)

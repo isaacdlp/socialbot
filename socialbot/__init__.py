@@ -25,22 +25,18 @@ class SocialBot():
 
     base_url = None
 
-    log = None
-    handler = None
-    formatter = lg.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-    pauses = {
-        "action": lambda: randrange(3, 6),
-        "post": lambda: randrange(100, 301),
-        "follow": lambda: randrange(30, 91),
-        "unfollow": lambda: randrange(15, 61)
-    }
-
-    times = {}
-
-    actions = {}
-
     def __init__(self, driver=None, log_name="social_bot"):
+        self.log = None
+        self.handler = None
+        self.formatter = lg.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        self.pauses = {
+            "action": lambda: randrange(3, 6),
+            "post": lambda: randrange(100, 301),
+            "follow": lambda: randrange(30, 91),
+            "unfollow": lambda: randrange(15, 61)
+        }
+        self.times = {}
+
         log = lg.getLogger(log_name)
         log.setLevel(lg.DEBUG)
         self.log = log
@@ -82,6 +78,9 @@ class SocialBot():
             if secs < 0:
                 secs = 0
         return secs
+
+    def ready_to(self, event):
+        return not self.secs_until(event) > 0
 
     def wait_until(self, event):
         secs = self.secs_until(event)
@@ -247,6 +246,7 @@ class Twitter(SocialBot):
         self.wait_until("post")
         button = panel.find_element_by_css_selector("button.js-tweet-btn")
         self.browser.execute_script("arguments[0].click();", button)
+        self.log.info("Posted %s" % msg)
         self.next_time("post")
         self.wait_until("action")
 
