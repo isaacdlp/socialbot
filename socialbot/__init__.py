@@ -42,6 +42,7 @@ class SocialBot():
         self.log = log
         if driver is None:
             options = Options()
+            options.add_argument("log-level=3")
             options.add_argument("--disable-notifications")
             driver = web.Chrome(chrome_options=options)
         self.browser = driver

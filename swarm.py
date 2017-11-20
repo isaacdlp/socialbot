@@ -83,13 +83,6 @@ else:
         pack_size = int(param)
     bots = []
 
-    blacklist = []
-    try:
-        with open("%s-blacklist.json" % basename, "r") as f:
-            blacklist = json.load(f)
-    except:
-        print("No blacklist found")
-
     for sibling in siblings:
 
         with open(sibling, "r") as f:
@@ -111,10 +104,11 @@ else:
                 else:
                     bot.set_cookies(cookies, bot_type)
                 if bot.logged():
-                    print("Adding %s to the pack" % bot.username)
                     bot.status = "on"
                     bots.append(bot)
-                    if len(bots) >= pack_size:
+                    size = len(bots)
+                    print("Added %s to the pack [%i]" % (bot.username, size))
+                    if size >= pack_size:
                         break
             except Exception as ex:
                 print("Issue %s with %s !" % (ex, bot.username))
@@ -127,7 +121,15 @@ else:
 
         if action == "post":
 
-        # Post messages to targets action
+            # Post messages to targets action
+
+            total_num = 0
+            blacklist = []
+            try:
+                with open("%s-blacklist.json" % basename, "r") as f:
+                    blacklist = json.load(f)
+            except:
+                print("No blacklist found")
 
             with open("%s-msgs.json" % (basename), "r") as f:
                 msgs = json.load(f)
@@ -150,7 +152,7 @@ else:
                                     msg = choice(msgs)
                                     msg = msg.replace("[handle]", "@%s" % target)
                                     bot.post(msg)
-                                    print("%s posted '%s'" % (bot.username, msg))
+                                    print("[%i] %s posted '%s'" % (total_num, bot.username, msg))
                                     blacklist.append(target)
                                     num += 1
                                 except StopIteration as ex:
@@ -162,7 +164,9 @@ else:
                 if not active:
                     print("No more bots working. Exiting.")
                     break
-                if num < 1:
+                if num > 0:
+                    total_num += num
+                else:
                     print("Too fast. Waiting.")
                     sleep(10)
 
