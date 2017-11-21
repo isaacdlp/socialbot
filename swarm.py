@@ -152,9 +152,10 @@ else:
                                     msg = choice(msgs)
                                     msg = msg.replace("[handle]", "@%s" % target)
                                     bot.post(msg)
+                                    num += 1
+                                    total_num += 1
                                     print("[%i] %s posted '%s'" % (total_num, bot.username, msg))
                                     blacklist.append(target)
-                                    num += 1
                                 except StopIteration as ex:
                                     break
                             active = True
@@ -164,9 +165,7 @@ else:
                 if not active:
                     print("No more bots working. Exiting.")
                     break
-                if num > 0:
-                    total_num += num
-                else:
+                if num < 1:
                     print("Too fast. Waiting.")
                     sleep(10)
 

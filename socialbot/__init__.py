@@ -19,8 +19,7 @@ from random import randrange
 import requests as req
 from bs4 import BeautifulSoup as bs
 import logging as lg
-import warnings
-warnings.filterwarnings(action = "ignore", module = "selenium")
+
 
 class SocialBot():
 

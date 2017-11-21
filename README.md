@@ -30,3 +30,9 @@ Python bots for social networks
     * Get posts by a user
 
 Flexible **event logging**.
+
+## Individual vs Swarm
+
+Annotated sample files are provided for behavior of both:
+* Individual bot `bot.py`
+* Bot swarm `swarm.py`.

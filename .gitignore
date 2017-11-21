@@ -2,7 +2,7 @@
 pack-twitter*
 *credentials*.json
 *cookies*.json
-*list*.json
+*blacklist*.json
 chromedriver.*
 store/**
 
