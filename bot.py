@@ -85,6 +85,7 @@ bot.log.addHandler(handler)
 # Actions
 
 if bot.logged():
+
     try:
         if action == "smart_whitelist":
             # Smart Update whitelist
@@ -223,6 +224,21 @@ if bot.logged():
                         bot.get_user(dump, action="follow")
                     except:
                         bot.log.warning("ERROR with %s" % dump)
+
+        elif action == "post":
+            # Post a message
+            # python bot.py sample twitter post "Your twitter message"
+            bot.post(param)
+
+        elif action == "like":
+            # Like a message
+            # python bot.py sample twitter like 937285136240074752
+            bot.get_post(param, "like")
+
+        elif action == "unlike":
+            # Like a message
+            # python bot.py sample twitter unlike 937285136240074752
+            bot.get_post(param, "unlike")
 
         elif action == "posts":
             # Display posts by Search Term

@@ -227,7 +227,9 @@ class Twitter(SocialBot):
 
     buttons = {
         "follow" : "button.follow-text",
-        "unfollow" : "button.following-text"
+        "unfollow" : "button.following-text",
+        "like" : "button.js-actionFavorite:nth-of-type(1)",
+        "unlike": "button.js-actionFavorite:nth-of-type(2)"
     }
 
     def login(self, username, password):
@@ -268,6 +270,11 @@ class Twitter(SocialBot):
         cards = self._get_cards("%s/%s/%s" % (self.base_url, handle, deck), max, offset,
                                 "div.stream-container", "div.js-actionable-tweet")
         return self._clean_posts(cards, action)
+
+    def get_post(self, id, action=None):
+        self.browser.get("%s/statuses/%s" % (self.base_url, id))
+        card = self.wait_for("div.js-original-tweet")
+        return self._clean_posts([card], action)[0]
 
     # deck options are "following" and "followers"
     def get_users(self, handle, max=0, offset=0, deck="followers", action=None, blacklist=[], no_followers=True):
@@ -350,13 +357,27 @@ class Twitter(SocialBot):
                 post["pinned"] = len(card.find_elements_by_css_selector("span.js-pinned-text")) > 0
                 post["media"] = len(card.find_elements_by_css_selector("div.js-media-container")) > 0 or \
                                  len(card.find_elements_by_css_selector("div.AdaptiveMediaOuterContainer")) > 0
-                if callable(action):
-                    action(post, items)
-                else:
-                    items.append(post)
+                self._post_actions(post, card, action, items)
         except BaseException as ex:
             self.log.error("%s" % str(ex))
         return items
+
+    def _post_actions(self, post, card, action, items=[]):
+        if action is not None:
+            if callable(action):
+                action(card, items)
+            else:
+                button = self.wait_for(self.buttons[action], card, 1, False)
+                if button is None:
+                    self.log.warning("No button for %s!" % post["id"])
+                elif button.is_displayed():
+                    self.wait_until(action)
+                    self.browser.execute_script("arguments[0].click();", button)
+                    self.next_time(action)
+                    items.append(post)
+                    self.log.info("%s %s" % (action, post["id"]))
+        else:
+            items.append(post)
 
     # deck options are "followers", "following", "likes", "lists"
     def fast_get(self, handle, position=None, max=0, deck="followers", list_name=None):

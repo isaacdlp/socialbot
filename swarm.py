@@ -19,16 +19,19 @@ from time import sleep
 bot_alias = "pack"
 bot_type = "twitter"
 action = "post"
-param = None
+param1 = None
+param2 = None
 
 if len(sys.argv) > 1:
     bot_alias = sys.argv[1]
     if len(sys.argv) > 2:
-       bot_type = sys.argv[2]
-       if len(sys.argv) > 3:
-           action = sys.argv[3]
-           if len(sys.argv) > 4:
-               param = sys.argv[4]
+        bot_type = sys.argv[2]
+        if len(sys.argv) > 3:
+            action = sys.argv[3]
+            if len(sys.argv) > 4:
+                param1 = sys.argv[4]
+                if len(sys.argv) > 5:
+                    param2 = sys.argv[5]
 
 basename = "%s-%s" % (bot_alias, bot_type)
 
@@ -40,6 +43,7 @@ shuffle(siblings)
 if action == "fix":
 
     # Fix broken bots action
+    # python swarm.py pack twitter fix
 
     for num, sibling in enumerate(siblings):
 
@@ -79,8 +83,8 @@ if action == "fix":
 else:
 
     pack_size = 2
-    if param is not None:
-        pack_size = int(param)
+    if param1 is not None:
+        pack_size = int(param1)
     bots = []
 
     for sibling in siblings:
@@ -119,9 +123,18 @@ else:
 
     try:
 
+        if action == "like":
+
+            # Like a message
+            # python swarm.py pack twitter like 100 937285136240074752
+
+            for bot in bots:
+                bot.get_post(param2, "like")
+
         if action == "post":
 
-            # Post messages to targets action
+            # Post messages to targets
+            # python swarm.py pack twitter post 100
 
             total_num = 0
             blacklist = []

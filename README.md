@@ -7,6 +7,7 @@ Python bots for social networks
 * [Twitter](http://instagram.com)
     * Login
     * Post tweets
+    * Like and unlike tweets
     * Get users and tweets by a term search
     * Get followers and followed by a user
     * Get tweets, replies and media by a user
