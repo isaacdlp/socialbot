@@ -85,6 +85,7 @@ else:
     bot_size = int(bot_size)
     bots = []
 
+    size = 0
     for sibling in siblings:
 
         with open(sibling, "r") as f:
@@ -107,9 +108,29 @@ else:
                     bot.set_cookies(cookies, bot_type)
                 if bot.logged():
                     bot.status = "on"
-                    bots.append(bot)
-                    size = len(bots)
-                    print("Added %s to the pack [%i]" % (bot.username, size))
+                    size += 1
+                    if bot_action == "like":
+
+                        # Like a message
+                        # python swarm.py pack twitter like 100 937285136240074752
+
+                        for bot in bots:
+                            bot.get_post(bot_param, "like")
+
+                    elif bot_action == "follow" or bot_action == "unfollow":
+
+                        # Follow and unfollow
+                        # python swarm.py pack twitter follow 25 piquey
+
+                        for bot in bots:
+                            bot.get_user(bot_param, bot_action, False)
+
+                    if bot_action == "post":
+                        bots.append(bot)
+                        print("Added %s to the pack [%i]" % (bot.username, size))
+                    else:
+                        bot.quit()
+
                     if bot_size > 0 and size >= bot_size:
                         break
             except Exception as ex:
@@ -121,23 +142,7 @@ else:
 
     try:
 
-        if bot_action == "like":
-
-            # Like a message
-            # python swarm.py pack twitter like 100 937285136240074752
-
-            for bot in bots:
-                bot.get_post(bot_param, "like")
-
-
-
-
-        elif bot_action == "follow" or bot_action == "unfollow":
-
-            for bot in bots:
-                bot.get_user(bot_param, bot_action, False)
-
-        elif bot_action == "post":
+        if bot_action == "post":
 
             # Post messages to targets
             # python swarm.py pack twitter post 100
