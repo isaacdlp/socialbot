@@ -35,6 +35,7 @@ Flexible **event logging**.
 
 ## Individual vs Swarm
 
+The API provides granular action-functions that can be used by bots operating individually or as swarm.
 Annotated sample files are provided for behavior of both:
 * Individual bot `bot.py`
 * Bot swarm `swarm.py`.

@@ -535,7 +535,6 @@ class Instagram(SocialBot):
     def _clean_posts(self, cards, action):
         items = []
         try:
-
             for card in cards:
                 post = {}
                 post["link"] = card.find_element_by_css_selector("a").get_attribute("href")
