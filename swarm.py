@@ -109,21 +109,20 @@ else:
                 if bot.logged():
                     bot.status = "on"
                     size += 1
+
                     if bot_action == "like":
 
                         # Like a message
                         # python swarm.py pack twitter like 100 937285136240074752
 
-                        for bot in bots:
-                            bot.get_post(bot_param, "like")
+                        bot.get_post(bot_param, "like")
 
                     elif bot_action == "follow" or bot_action == "unfollow":
 
                         # Follow and unfollow
                         # python swarm.py pack twitter follow 25 piquey
 
-                        for bot in bots:
-                            bot.get_user(bot_param, bot_action, False)
+                        bot.get_user(bot_param, bot_action, False)
 
                     if bot_action == "post":
                         bots.append(bot)
