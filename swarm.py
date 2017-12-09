@@ -110,18 +110,14 @@ else:
                     bot.status = "on"
                     size += 1
 
-                    if bot_action == "like":
-
+                    if bot_action == "like" or bot_action == "unlike" or bot_action == "quote" or bot_action == "unquote":
                         # Like a message
                         # python swarm.py pack twitter like 100 937285136240074752
-
-                        bot.get_post(bot_param, "like")
+                        bot.get_post(bot_param, bot_action)
 
                     elif bot_action == "follow" or bot_action == "unfollow":
-
                         # Follow and unfollow
                         # python swarm.py pack twitter follow 25 piquey
-
                         bot.get_user(bot_param, bot_action, False)
 
                     if bot_action == "post":
@@ -143,10 +139,8 @@ else:
     try:
 
         if bot_action == "post":
-
             # Post messages to targets
             # python swarm.py pack twitter post 100
-
             total_num = 0
             try:
                 with open("%s-blacklist.json" % basename, "r") as f:

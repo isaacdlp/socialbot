@@ -33,7 +33,9 @@ class SocialBot():
             "action": lambda: randrange(3, 6),
             "post": lambda: randrange(100, 301),
             "follow": lambda: randrange(30, 91),
-            "unfollow": lambda: randrange(15, 61)
+            "unfollow": lambda: randrange(15, 61),
+            "like": lambda: randrange(30, 91),
+            "unlike": lambda: randrange(15, 61)
         }
         self.times = {}
 
@@ -229,7 +231,9 @@ class Twitter(SocialBot):
         "follow" : "button.follow-text",
         "unfollow" : "button.following-text",
         "like" : "button.js-actionFavorite:nth-of-type(1)",
-        "unlike": "button.js-actionFavorite:nth-of-type(2)"
+        "unlike": "button.js-actionFavorite:nth-of-type(2)",
+        "quote" : "button.js-actionRetweet:nth-of-type(1)",
+        "unquote" : "button.js-actionRetweet:nth-of-type(2)"
     }
 
     def login(self, username, password):
@@ -311,7 +315,6 @@ class Twitter(SocialBot):
                                 "div.stream-container", "div.js-actionable-user")
         return self._clean_users(cards, action, blacklist, False)
 
-    # action options "follow" and "unfollow"
     def _clean_users(self, cards, action=None, blacklist=[], no_followers=True):
         items = []
         try:
@@ -326,6 +329,7 @@ class Twitter(SocialBot):
             self.log.error("%s" % str(ex))
         return items
 
+    # action options "follow" and "unfollow"
     def _user_actions(self, name, card, action, items=[]):
         if action is not None:
             if callable(action):
@@ -364,6 +368,7 @@ class Twitter(SocialBot):
             self.log.error("%s" % str(ex))
         return items
 
+    # actions options are "like", "unlike", "quote" and "unquote"
     def _post_actions(self, post, card, action, items=[]):
         if action is not None:
             if callable(action):
@@ -375,6 +380,11 @@ class Twitter(SocialBot):
                 elif button.is_displayed():
                     self.wait_until(action)
                     self.browser.execute_script("arguments[0].click();", button)
+                    if action == "quote":
+                        panel = self.wait_for("div#retweet-tweet-dialog")
+                        button = panel.find_element_by_css_selector("button.retweet-action")
+                        self.browser.execute_script("arguments[0].click();", button)
+                        self.wait_until("action")
                     self.next_time(action)
                     items.append(post)
                     self.log.info("%s %s" % (action, post["id"]))

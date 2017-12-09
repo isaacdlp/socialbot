@@ -24,9 +24,6 @@ bot_type = "twitter"
 action = "smart_unfollow"
 param = None
 
-action = "post"
-param = "Let's try this again!"
-
 if len(sys.argv) > 1:
     bot_alias = sys.argv[1]
     bot_type = sys.argv[2]
@@ -233,15 +230,10 @@ if bot.logged():
             # python bot.py sample twitter post "Your twitter message"
             bot.post(param)
 
-        elif action == "like":
+        elif action == "like" or action == "unlike" or action == "quote" or action == "unquote":
             # Like a message
             # python bot.py sample twitter like 937285136240074752
-            bot.get_post(param, "like")
-
-        elif action == "unlike":
-            # Like a message
-            # python bot.py sample twitter unlike 937285136240074752
-            bot.get_post(param, "unlike")
+            bot.get_post(param, action)
 
         elif action == "posts":
             # Display posts by Search Term
