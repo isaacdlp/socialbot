@@ -139,6 +139,7 @@ else:
                     json.dump(credentials, f, indent=4)
                 bot.quit()
 
+    blacklist = []
     try:
 
         if bot_action == "post":
@@ -147,7 +148,6 @@ else:
             # python swarm.py pack twitter post 100
 
             total_num = 0
-            blacklist = []
             try:
                 with open("%s-blacklist.json" % basename, "r") as f:
                     blacklist = json.load(f)
@@ -193,8 +193,9 @@ else:
                     sleep(10)
 
     finally:
-        with open("%s-blacklist.json" % basename, "w") as f:
-            json.dump(list(set(blacklist)), f)
+        if size(blacklist) > 0:
+            with open("%s-blacklist.json" % basename, "w") as f:
+                json.dump(list(set(blacklist)), f)
         for bot in bots:
             try:
                 if bot.status == "off":
