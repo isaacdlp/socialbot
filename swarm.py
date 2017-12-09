@@ -18,20 +18,20 @@ from time import sleep
 
 bot_alias = "pack"
 bot_type = "twitter"
-action = "post"
-param1 = None
-param2 = None
+bot_action = "post"
+bot_size = 0
+bot_param = None
 
 if len(sys.argv) > 1:
     bot_alias = sys.argv[1]
     if len(sys.argv) > 2:
         bot_type = sys.argv[2]
         if len(sys.argv) > 3:
-            action = sys.argv[3]
+            bot_action = sys.argv[3]
             if len(sys.argv) > 4:
-                param1 = sys.argv[4]
+                bot_size = sys.argv[4]
                 if len(sys.argv) > 5:
-                    param2 = sys.argv[5]
+                    bot_param = sys.argv[5]
 
 basename = "%s-%s" % (bot_alias, bot_type)
 
@@ -40,7 +40,7 @@ basename = "%s-%s" % (bot_alias, bot_type)
 siblings = glob.glob("%s-bots/*-bot.json" % basename)
 shuffle(siblings)
 
-if action == "fix":
+if bot_action == "fix":
 
     # Fix broken bots action
     # python swarm.py pack twitter fix
@@ -82,9 +82,7 @@ if action == "fix":
 
 else:
 
-    pack_size = 2
-    if param1 is not None:
-        pack_size = int(param1)
+    bot_size = int(bot_size)
     bots = []
 
     for sibling in siblings:
@@ -112,7 +110,7 @@ else:
                     bots.append(bot)
                     size = len(bots)
                     print("Added %s to the pack [%i]" % (bot.username, size))
-                    if size >= pack_size:
+                    if bot_size > 0 and size >= bot_size:
                         break
             except Exception as ex:
                 print("Issue %s with %s !" % (ex, bot.username))
@@ -123,15 +121,23 @@ else:
 
     try:
 
-        if action == "like":
+        if bot_action == "like":
 
             # Like a message
             # python swarm.py pack twitter like 100 937285136240074752
 
             for bot in bots:
-                bot.get_post(param2, "like")
+                bot.get_post(bot_param, "like")
 
-        if action == "post":
+
+
+
+        elif bot_action == "follow" or bot_action == "unfollow":
+
+            for bot in bots:
+                bot.get_user(bot_param, bot_action, False)
+
+        elif bot_action == "post":
 
             # Post messages to targets
             # python swarm.py pack twitter post 100

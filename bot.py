@@ -24,6 +24,9 @@ bot_type = "twitter"
 action = "smart_unfollow"
 param = None
 
+action = "post"
+param = "Let's try this again!"
+
 if len(sys.argv) > 1:
     bot_alias = sys.argv[1]
     bot_type = sys.argv[2]
