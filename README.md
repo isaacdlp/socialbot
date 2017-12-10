@@ -17,7 +17,7 @@ Python bots for social networks
     * Get list members and subscribers
     * Get individual user profile
     * Individual and batch actions
-    * Optional fast internal API (JSON)
+    * Optional *fast* internal API (JSON)
 * [Instagram](http://instagram.com)
     * Login
     * Follow and unfollow users
