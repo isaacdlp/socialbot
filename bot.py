@@ -230,10 +230,13 @@ if bot.logged():
             # python bot.py sample twitter post "Your twitter message"
             bot.post(param)
 
-        elif action == "like" or action == "unlike" or action == "quote" or action == "unquote":
-            # Like a message
-            # python bot.py sample twitter like 937285136240074752
-            bot.get_post(param, action)
+        elif action == "like" or action == "unlike" or action == "quote" or action == "unquote" or action == "reply":
+            # Actions on a message
+            # python bot.py sample twitter quote 937285136240074752 "A message worth a retweet"
+            msg = ""
+            if len(sys.argv) > 5:
+                msg = sys.argv[5]
+            bot.get_post(param, action, msg)
 
         elif action == "posts":
             # Display posts by Search Term

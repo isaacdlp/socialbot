@@ -35,7 +35,10 @@ class SocialBot():
             "follow": lambda: randrange(30, 91),
             "unfollow": lambda: randrange(15, 61),
             "like": lambda: randrange(30, 91),
-            "unlike": lambda: randrange(15, 61)
+            "unlike": lambda: randrange(15, 61),
+            "quote": lambda: randrange(30, 91),
+            "unquote": lambda: randrange(15, 61),
+            "reply": lambda: randrange(30, 91)
         }
         self.times = {}
 
@@ -233,7 +236,8 @@ class Twitter(SocialBot):
         "like" : "button.js-actionFavorite:nth-of-type(1)",
         "unlike": "button.js-actionFavorite:nth-of-type(2)",
         "quote" : "button.js-actionRetweet:nth-of-type(1)",
-        "unquote" : "button.js-actionRetweet:nth-of-type(2)"
+        "unquote" : "button.js-actionRetweet:nth-of-type(2)",
+        "reply" : "button.js-actionReply"
     }
 
     def login(self, username, password):
@@ -244,27 +248,31 @@ class Twitter(SocialBot):
         return self._logged("a#user-dropdown-toggle")
 
     def post(self, msg):
+        self.wait_until("post")
         self.go_home()
         button = self.wait_for("button#global-new-tweet-button")
         self.browser.execute_script("arguments[0].click();", button)
-        panel = self.wait_for("div.modal-tweet-form-container")
-        text_el = panel.find_element_by_css_selector("div#tweet-box-global")
-        text_el.clear()
-        text_el.send_keys(msg)
-        self.wait_until("post")
-        button = panel.find_element_by_css_selector("button.js-tweet-btn")
-        self.browser.execute_script("arguments[0].click();", button)
+        self._tweet(msg)
         self.log.info("Posted %s" % msg)
         self.next_time("post")
+
+    def _tweet(self, msg, panel_css="div#global-tweet-dialog",
+               text_css="div#tweet-box-global", button_css="button.js-tweet-btn"):
+        panel = self.wait_for(panel_css)
+        text_el = panel.find_element_by_css_selector(text_css)
+        text_el.clear()
+        text_el.send_keys(msg)
+        button = panel.find_element_by_css_selector(panel_css)
+        self.browser.execute_script("arguments[0].click();", button)
         self.wait_until("action")
 
     # deck options are "top" and "tweets" (latest)
-    def search_posts(self, terms, max=0, offset=0, deck="top", action=None):
+    def search_posts(self, terms, max=0, offset=0, deck="top", action=None, msg=""):
         q = "%s/search?q=%s" % (self.base_url, terms)
         if deck != "top":
             q = "%s&f=%s" % (q, deck)
         cards = self._get_cards(q, max, offset, "div.stream-container", "li.js-stream-item")
-        return self._clean_posts(cards, action)
+        return self._clean_posts(cards, action, msg)
 
     def search_users(self, terms, max=0, offset=0, action=None, blacklist=[], no_followers=True):
         cards = self._get_cards("%s/search?q=%s&f=users" % (self.base_url, terms), max, offset,
@@ -272,15 +280,15 @@ class Twitter(SocialBot):
         return self._clean_users(cards, action, blacklist, no_followers)
 
     # deck options are "" (tweets), "with_replies" and "media"
-    def get_posts(self, handle, max=0, offset=0, deck="", action=None):
+    def get_posts(self, handle, max=0, offset=0, deck="", action=None, msg=""):
         cards = self._get_cards("%s/%s/%s" % (self.base_url, handle, deck), max, offset,
                                 "div.stream-container", "div.js-actionable-tweet")
-        return self._clean_posts(cards, action)
+        return self._clean_posts(cards, action, msg)
 
-    def get_post(self, id, action=None):
+    def get_post(self, id, action=None, msg=""):
         self.browser.get("%s/statuses/%s" % (self.base_url, id))
         card = self.wait_for("div.js-original-tweet")
-        return self._clean_posts([card], action)[0]
+        return self._clean_posts([card], action, msg)[0]
 
     # deck options are "following" and "followers"
     def get_users(self, handle, max=0, offset=0, deck="followers", action=None, blacklist=[], no_followers=True):
@@ -347,7 +355,7 @@ class Twitter(SocialBot):
         else:
             items.append(name)
 
-    def _clean_posts(self, cards, action=None):
+    def _clean_posts(self, cards, action=None, msg=""):
         items = []
         try:
             for card in cards:
@@ -363,13 +371,13 @@ class Twitter(SocialBot):
                 post["pinned"] = len(card.find_elements_by_css_selector("span.js-pinned-text")) > 0
                 post["media"] = len(card.find_elements_by_css_selector("div.js-media-container")) > 0 or \
                                  len(card.find_elements_by_css_selector("div.AdaptiveMediaOuterContainer")) > 0
-                self._post_actions(post, card, action, items)
+                self._post_actions(post, card, action, msg, items)
         except BaseException as ex:
             self.log.error("%s" % str(ex))
         return items
 
-    # actions options are "like", "unlike", "quote" and "unquote"
-    def _post_actions(self, post, card, action, items=[]):
+    # actions options are "like", "unlike", "quote", "unquote" and "reply"
+    def _post_actions(self, post, card, action, msg, items=[]):
         if action is not None:
             if callable(action):
                 action(card, items)
@@ -380,11 +388,11 @@ class Twitter(SocialBot):
                 elif button.is_displayed():
                     self.wait_until(action)
                     self.browser.execute_script("arguments[0].click();", button)
-                    if action == "quote":
-                        panel = self.wait_for("div#retweet-tweet-dialog")
-                        button = panel.find_element_by_css_selector("button.retweet-action")
-                        self.browser.execute_script("arguments[0].click();", button)
-                        self.wait_until("action")
+                    if action == "reply":
+                        self._tweet(msg)
+                    elif action == "quote":
+                        self._tweet(msg, "div#retweet-tweet-dialog",
+                                      "div#retweet-with-comment", "button.retweet-action")
                     self.next_time(action)
                     items.append(post)
                     self.log.info("%s %s" % (action, post["id"]))

@@ -7,8 +7,9 @@ Python bots for social networks
 * [Twitter](http://instagram.com)
     * Login
     * Post tweets
-    * Like and unlike ("undo") tweets
+    * Reply to tweets
     * Quote ("retweet") and unquote ("undo") tweets
+    * Like and unlike ("undo") tweets
     * Follow and unfollow users
     * Get users and tweets by a term search
     * Get followers and followed by a user
