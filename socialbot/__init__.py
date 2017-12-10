@@ -392,6 +392,8 @@ class Twitter(SocialBot):
                         self._write(msg, "div.inline-reply-tweetbox:nth-of-type(1)")
                     elif action == "quote":
                         self._write(msg, "div#retweet-tweet-dialog", "button.retweet-action")
+                    else:
+                        self.wait_until("action")
                     self.next_time(action)
                     items.append(post)
                     self.log.info("%s %s" % (action, post["id"]))

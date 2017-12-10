@@ -25,6 +25,9 @@ action = "smart_unfollow"
 param = None
 msg = ""
 
+action = "like"
+param = "928739950828425217"
+
 if len(sys.argv) > 1:
     bot_alias = sys.argv[1]
     bot_type = sys.argv[2]
