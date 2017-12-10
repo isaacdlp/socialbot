@@ -125,8 +125,6 @@ class SocialBot():
         form.find_element_by_tag_name("button").click()
 
     def _logged(self, css_selector):
-        # html = self.browser.find_element_by_tag_name("html")
-        # self.lang = html.get_attribute("lang")[0:2]
         try:
            self.wait_for(css_selector)
            return True
@@ -242,7 +240,7 @@ class Twitter(SocialBot):
 
     def login(self, username, password):
         self._login("%s/login" % self.base_url, username, password,
-                     "form.signin", "input[name='session[username_or_email]']", "input[name='session[password]'")
+                     "form.signin", "input[name='session[username_or_email]']", "input[name='session[password]']")
 
     def logged(self):
         return self._logged("a#user-dropdown-toggle")

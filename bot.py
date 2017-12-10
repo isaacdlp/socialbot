@@ -12,17 +12,18 @@
 
 
 import sys, os, json
-from random import shuffle
+from random import shuffle, choice
 import logging as lg
 import socialbot
 from random import randrange
 
 
-# basename = os.path.splitext(os.path.basename(sys.argv[0]))[0]
+chatter = ["like", "quote", "reply"]
 bot_alias = "sample"
 bot_type = "twitter"
 action = "smart_unfollow"
 param = None
+msg = ""
 
 if len(sys.argv) > 1:
     bot_alias = sys.argv[1]
@@ -31,6 +32,8 @@ if len(sys.argv) > 1:
         action = sys.argv[3]
         if len(sys.argv) > 4:
             param = sys.argv[4]
+            if len(sys.argv) > 5:
+                msg = sys.argv[5]
 
 basename = "%s-%s" % (bot_alias, bot_type)
 
@@ -230,13 +233,13 @@ if bot.logged():
             # python bot.py sample twitter post "Your twitter message"
             bot.post(param)
 
-        elif action == "like" or action == "unlike" or action == "quote" or action == "unquote" or action == "reply":
+        elif action == "chatter" or action in chatter or action == "unlike" or action == "unquote":
             # Actions on a message
             # python bot.py sample twitter quote 937285136240074752 "A message worth a retweet"
-            msg = ""
-            if len(sys.argv) > 5:
-                msg = sys.argv[5]
-            bot.get_post(param, action, msg)
+            act = action
+            if action == "chatter":
+                act = choice(chatter)
+            bot.get_post(param, act, msg)
 
         elif action == "posts":
             # Display posts by Search Term

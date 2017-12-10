@@ -16,22 +16,26 @@ from random import shuffle, choice
 import socialbot
 from time import sleep
 
+chatter = ["like", "quote", "reply"]
 bot_alias = "pack"
 bot_type = "twitter"
-bot_action = "post"
-bot_size = 0
-bot_param = None
+action = "post"
+size = 0
+param = None
+msg = ""
 
 if len(sys.argv) > 1:
     bot_alias = sys.argv[1]
     if len(sys.argv) > 2:
         bot_type = sys.argv[2]
         if len(sys.argv) > 3:
-            bot_action = sys.argv[3]
+            action = sys.argv[3]
             if len(sys.argv) > 4:
-                bot_size = sys.argv[4]
+                size = sys.argv[4]
                 if len(sys.argv) > 5:
-                    bot_param = sys.argv[5]
+                    param = sys.argv[5]
+                    if len(sys.argv) > 6:
+                        msg = sys.argv[6]
 
 basename = "%s-%s" % (bot_alias, bot_type)
 
@@ -40,7 +44,7 @@ basename = "%s-%s" % (bot_alias, bot_type)
 siblings = glob.glob("%s-bots/*-bot.json" % basename)
 shuffle(siblings)
 
-if bot_action == "fix":
+if action == "fix":
 
     # Fix broken bots action
     # python swarm.py pack twitter fix
@@ -82,10 +86,10 @@ if bot_action == "fix":
 
 else:
 
-    bot_size = int(bot_size)
+    size = int(size)
     bots = []
 
-    size = 0
+    count = 0
     for sibling in siblings:
 
         with open(sibling, "r") as f:
@@ -108,29 +112,28 @@ else:
                     bot.set_cookies(cookies, bot_type)
                 if bot.logged():
                     bot.status = "on"
-                    size += 1
+                    count += 1
 
-                    if bot_action == "like" or bot_action == "unlike" or bot_action == "quote"\
-                            or bot_action == "unquote" or bot_action == "reply":
+                    if action == "chatter" or action in chatter or action == "unlike" or action == "unquote":
                         # Actions on a message
                         # python swarm.py pack twitter quote 100 937285136240074752 "A message worth a retweet"
-                        msg = ""
-                        if len(sys.argv) > 6:
-                            msg = sys.argv[6]
-                        bot.get_post(bot_param, bot_action, msg)
+                        act = action
+                        if action == "chatter":
+                            act = choice(chatter)
+                        bot.get_post(param, act, msg)
 
-                    elif bot_action == "follow" or bot_action == "unfollow":
+                    elif action == "follow" or action == "unfollow":
                         # Follow and unfollow
                         # python swarm.py pack twitter follow 25 shakira
-                        bot.get_user(bot_param, bot_action, False)
+                        bot.get_user(param, action, False)
 
-                    if bot_action == "post":
+                    if action == "post":
                         bots.append(bot)
-                        print("Added %s to the pack [%i]" % (bot.username, size))
+                        print("Added %s to the pack [%i]" % (bot.username, count))
                     else:
                         bot.quit()
 
-                    if bot_size > 0 and size >= bot_size:
+                    if size > 0 and count >= size:
                         break
             except Exception as ex:
                 print("Issue %s with %s !" % (ex, bot.username))
@@ -142,7 +145,7 @@ else:
     blacklist = []
     try:
 
-        if bot_action == "post":
+        if action == "post":
             # Post messages to targets
             # python swarm.py pack twitter post 100
             total_num = 0
