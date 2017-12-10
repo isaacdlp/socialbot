@@ -252,19 +252,21 @@ class Twitter(SocialBot):
         self.go_home()
         button = self.wait_for("button#global-new-tweet-button")
         self.browser.execute_script("arguments[0].click();", button)
-        self._tweet(msg)
-        self.log.info("Posted %s" % msg)
+        self._write(msg)
+        self.log.info("post %s" % msg)
         self.next_time("post")
 
-    def _tweet(self, msg, panel_css="div#global-tweet-dialog",
-               text_css="div#tweet-box-global", button_css="button.js-tweet-btn"):
+    def _write(self, msg, panel_css="div#global-tweet-dialog", button_css="button.js-tweet-btn", text_css="div.tweet-box"):
         panel = self.wait_for(panel_css)
         text_el = panel.find_element_by_css_selector(text_css)
         text_el.clear()
         text_el.send_keys(msg)
-        button = panel.find_element_by_css_selector(panel_css)
+        button = panel.find_element_by_css_selector(button_css)
         self.browser.execute_script("arguments[0].click();", button)
         self.wait_until("action")
+        close_el = panel.find_elements_by_css_selector("button.js-close")
+        if len(close_el) > 0:
+            self.browser.execute_script("arguments[0].click();", close_el[0])
 
     # deck options are "top" and "tweets" (latest)
     def search_posts(self, terms, max=0, offset=0, deck="top", action=None, msg=""):
@@ -389,10 +391,9 @@ class Twitter(SocialBot):
                     self.wait_until(action)
                     self.browser.execute_script("arguments[0].click();", button)
                     if action == "reply":
-                        self._tweet(msg)
+                        self._write(msg, "div.inline-reply-tweetbox:nth-of-type(1)")
                     elif action == "quote":
-                        self._tweet(msg, "div#retweet-tweet-dialog",
-                                      "div#retweet-with-comment", "button.retweet-action")
+                        self._write(msg, "div#retweet-tweet-dialog", "button.retweet-action")
                     self.next_time(action)
                     items.append(post)
                     self.log.info("%s %s" % (action, post["id"]))
