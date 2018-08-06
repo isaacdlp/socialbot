@@ -97,6 +97,7 @@ if bot.logged():
             # Smart Update whitelist
             # python bot.py sample twitter smart_whitelist vip
             members, pos = bot.fast_get(username, deck="lists", list_name=param)
+
             with open("%s-whitelist.json" % basename, "w") as f:
                 json.dump(members, f, indent=2)
 
@@ -165,25 +166,36 @@ if bot.logged():
 
         elif action == "follow":
             # Follow
-            # python bot.py sample twitter follow
+            # python bot.py sample twitter follow 1000
+            if param is None:
+                param = 100
             with open("%s-targets.json" % basename, "r") as f:
                 targets = json.load(f)
             num_total = 0
             for target in targets:
-                followers = bot.get_users(target, max=100, action="follow", blacklist=blacklist)
+                followers = bot.get_users(target, max=int(param), action="follow", blacklist=blacklist)
                 num = len(followers)
                 print("%i from %s" % (num, target))
                 num_total += num
             print("%i total" % num_total)
+
+        elif action == "search":
+            # Search
+            # python bot.py sample twitter search 1000 %23fintech%20near%3A%22Madrid%2C%20Spain%22%20within%3A300mi
+            if param is None:
+                param = 100
+            if msg is None:
+                raise BaseException("Search param cannot be empty")
+            followers = bot.search_users(msg, max=int(param), action="follow", blacklist=blacklist)
+            num = len(followers)
+            print("%i discovered" % num)
 
         elif action == "unfollow":
             # Unfollow (note that the param is the offset)
             # python bot.py sample twitter unfollow 300
             if param is None:
                 param = 0
-            else:
-                param = int(param)
-            following = bot.get_users(username, max=1000, offset=param, deck="following", action="unfollow", blacklist=whitelist)
+            following = bot.get_users(username, max=1000, offset=int(param), deck="following", action="unfollow", blacklist=whitelist)
             print("%i total" % len(following))
             blacklist += following
             with open("%s-blacklist.json" % basename, "w") as f:
@@ -256,7 +268,8 @@ if bot.logged():
             followers = bot.search_users(param, max=1000, blacklist=blacklist)
             print("%i total" % len(followers))
     except Exception as ex:
-        print(ex)
+        raise ex
+        #print(ex)
 
 # Save cookie
 
