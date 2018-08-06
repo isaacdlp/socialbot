@@ -179,9 +179,35 @@ if bot.logged():
                 num_total += num
             print("%i total" % num_total)
 
-        elif action == "search":
-            # Search
-            # python bot.py sample twitter search 1000 %23fintech%20near%3A%22Madrid%2C%20Spain%22%20within%3A300mi
+        elif action == "search_posts":
+            # Search_posts
+            # python bot.py sample twitter search_posts 1000 %23fintech%20near%3A%22Madrid%2C%20Spain%22%20within%3A300mi
+            if param is None:
+                param = 100
+            if msg is None:
+                raise BaseException("Search param cannot be empty")
+            num = 0
+            try:
+                dumps = bot.search_posts(msg, max=int(param), deck="tweets")
+                authors = []
+                for dump in dumps:
+                    if dump["author"] not in authors:
+                       authors.append(dump["author"])
+                shuffle(authors)
+                for author in authors:
+                    if author not in blacklist:
+                        try:
+                            bot.get_user(author, action="follow")
+                            num += 1
+                        except:
+                            bot.log.warning("ERROR with %s" % author)
+            except BaseException as ex:
+                bot.log.warning("ERROR %s" % str(ex))
+            print("%i total" % num)
+
+        elif action == "search_people":
+            # Search_people
+            # python bot.py sample twitter search_people 1000 %23fintech%20near%3A%22Madrid%2C%20Spain%22%20within%3A300mi
             if param is None:
                 param = 100
             if msg is None:

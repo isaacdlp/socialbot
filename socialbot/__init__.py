@@ -271,7 +271,7 @@ class Twitter(SocialBot):
         q = "%s/search?q=%s" % (self.base_url, terms)
         if deck != "top":
             q = "%s&f=%s" % (q, deck)
-        cards = self._get_cards(q, max, offset, "div.stream-container", "li.js-stream-item")
+        cards = self._get_cards(q, max, offset, "div.stream-container", "div.js-actionable-tweet")
         return self._clean_posts(cards, action, msg)
 
     def search_users(self, terms, max=0, offset=0, action=None, blacklist=[], no_followers=True):
